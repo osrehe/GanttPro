@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 7
-completado** (Gantt interactivo). El siguiente paso es el Paso 8: seguimiento, líneas base,
-histograma de recursos, nivelación, dashboard y auditoría.
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 8
+completado** (seguimiento, líneas base, histograma y nivelación, dashboard, auditoría). El siguiente
+paso es el Paso 9: exportación a Excel/PDF/PNG e importación Excel/CSV/MS Project.
 
 Fuentes de verdad, en este orden:
 
@@ -77,8 +77,8 @@ Usuarios del seed: `admin@ganttpro.local` (ADMIN), `editor@ganttpro.local` (EDIT
 Next.js 15.5 (App Router, React 19) · TypeScript estricto con `noUncheckedIndexedAccess` · Tailwind v4 ·
 shadcn/ui (estilo `radix-nova`, base `radix-ui`, iconos `lucide-react`) · Prisma 6 + PostgreSQL 16 ·
 Auth.js (`next-auth@5` beta, credenciales, sesión JWT) · zod 4 · bcryptjs · Vitest 3 · Playwright ·
-Prettier con plugin de Tailwind · ESLint 9 flat config. Zustand · TanStack Query · sonner · react-markdown. Pendientes según el plan: exceljs, Puppeteer,
-Recharts.
+Prettier con plugin de Tailwind · ESLint 9 flat config. Zustand · TanStack Query · sonner · react-markdown · Recharts. Pendientes según el plan: exceljs,
+Puppeteer.
 
 Entorno: Windows 11 + PowerShell. Todo script npm debe funcionar en PowerShell (`cross-env`, `rimraf`;
 nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
@@ -157,6 +157,23 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   Rendimiento medido en `e2e/gantt.perf.spec.ts` (se ejecuta aparte con `npm run test:e2e:perf`
   porque compite por CPU): marcas `project:hydrated` y `gantt:rendered` con `performance.mark`, y
   `window.__ganttDragStats` con el costo por evento de arrastre.
+- **Seguimiento (Paso 8, `src/components/tracking`)**: la fecha de estado vive en `Project.statusDate`
+  (`TrackingToolbar` en la tabla y en el dashboard la editan con `api.projects.update`). Todo el
+  cálculo es del engine en el cliente: `trackingStatus` (columnas Esperado/Desv. e indicador de
+  atraso en la tabla), `bulkProgressUpdates` ("Avance a fecha": actúa sobre la tarea seleccionada y
+  sus subtareas, o sobre todas; nunca baja un avance), `compareWithBaseline` (`BaselinesView` calcula
+  la comparativa con la fotografía de `api.baselines.get` y las tareas actuales del store, sin
+  depender de la caché), `projectKpis` y `sCurve` (`DashboardView`, Recharts), `resourceLoad`,
+  `aggregateWeekly` y `proposeLeveling` (`ResourceHistogram` en la vista Recursos: histograma
+  diario/semanal con capacidad, clic en barra lista las tareas, "Nivelar" muestra la propuesta y la
+  aplica con `bulkPatchCommand`). `bulkPatchCommand` (en `commands.ts`) es el comando deshacible
+  genérico para actualizaciones masivas; el endpoint `bulk` devuelve siempre las tareas editadas
+  además de las reprogramadas. Auditoría: `AuditView` usa `/api/projects/:id/changes` con filtros
+  `entityId`, `userId`, `from`, `to`, `order`. Configuración global en `/api/settings`
+  (`src/lib/services/settings.ts`; claves `ufValue`, `ufValueDate`, `displayCurrency`,
+  `dateFormat`, `logoUrl`) y adaptador `UfProvider` en `src/lib/uf-provider.ts` (`ManualUfProvider`
+  activo; `MindicadorUfProvider` preparado, sin uso en v1). Las vistas Dashboard, Líneas base y
+  Auditoría son pestañas del header del proyecto.
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`

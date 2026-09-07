@@ -385,6 +385,18 @@ describe("Bulk, auditoría y feed de cambios (UC-21, UC-25, UC-36)", () => {
     expect(after.data.changes.every((c) => c.operationId === "op-1")).toBe(true);
     expect(after.data.changes[0]?.userName).toBe("Admin Test");
     expect(after.data.changes[0]?.summary).toBe("marcó avance");
+
+    // Un cambio que no altera fechas ni estado (50 → 60) igualmente devuelve la tarea editada.
+    const again = await call<{ affected: TaskDto[] }>(
+      bulkRoute,
+      "POST",
+      { id: project.id },
+      {
+        updates: [{ id: b.id, progressPct: 60 }],
+      },
+    );
+    expect(again.status).toBe(200);
+    expect(again.data.affected.find((t) => t.id === b.id)?.progressPct).toBe(60);
   });
 });
 

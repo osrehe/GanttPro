@@ -243,6 +243,47 @@ export function moveTaskCommand(taskId: string, input: MoveTaskInput): Command {
   };
 }
 
+/**
+ * Actualización masiva de campos editables en una sola transacción (nivelación, avance a fecha de
+ * estado). Captura los valores previos de cada tarea para poder deshacer con otro `bulk`.
+ */
+export function bulkPatchCommand(
+  projectId: string,
+  updates: ReadonlyArray<{ id: string } & PatchTaskInput>,
+  label: string,
+  summary?: string,
+): Command {
+  const s = store();
+  const before = updates.map((u) => {
+    const task = s.tasksById.get(u.id);
+    const snapshot: Record<string, unknown> = { id: u.id };
+    if (task) {
+      const full = editableSnapshot(task) as Record<string, unknown>;
+      for (const key of Object.keys(u)) if (key !== "id" && key in full) snapshot[key] = full[key];
+    }
+    return snapshot as { id: string } & PatchTaskInput;
+  });
+  return {
+    label,
+    async execute(ctx) {
+      const result = await api.tasks.bulk(projectId, {
+        updates: updates.map((u) => ({ ...u, id: ctx.resolve(u.id) })),
+        summary,
+      });
+      store().applyTasks(result.affected);
+      store().highlight(result.affected.map((t) => t.id));
+    },
+    async undo(ctx) {
+      const result = await api.tasks.bulk(projectId, {
+        updates: before.map((u) => ({ ...u, id: ctx.resolve(u.id) })),
+        summary: summary ? `deshizo: ${summary}` : undefined,
+      });
+      store().applyTasks(result.affected);
+      store().highlight(result.affected.map((t) => t.id));
+    },
+  };
+}
+
 // ---------------------------------------------------------------- Dependencias
 
 export function createDependencyCommand(projectId: string, input: CreateDependencyInput): Command {

@@ -26,6 +26,7 @@ import {
 import { api } from "@/lib/api-client";
 import type { ResourceDto } from "@/lib/dto";
 import { describeError, useProjectStore } from "@/stores/project-store";
+import { ResourceHistogram } from "@/components/tracking/resource-histogram";
 import { ResourceDialog } from "./resource-dialog";
 
 const TYPE_LABEL: Record<ResourceDto["type"], string> = {
@@ -87,6 +88,10 @@ export function ResourcesView() {
             Nuevo recurso
           </Button>
         ) : null}
+      </div>
+
+      <div className="mb-4">
+        <ResourceHistogram />
       </div>
 
       {resources.length === 0 ? (

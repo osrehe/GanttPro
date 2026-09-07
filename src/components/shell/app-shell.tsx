@@ -30,6 +30,9 @@ const VIEWS = [
   { key: "table", label: "Tabla" },
   { key: "gantt", label: "Gantt" },
   { key: "resources", label: "Recursos" },
+  { key: "dashboard", label: "Dashboard" },
+  { key: "baselines", label: "Líneas base" },
+  { key: "audit", label: "Auditoría" },
 ] as const;
 
 export function AppShell({ user, children }: AppShellProps) {

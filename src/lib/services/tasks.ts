@@ -382,7 +382,11 @@ export async function bulkUpdateTasks(
       });
     }
     const { affected } = await rescheduleProject(tx, projectId, { renumber: structural });
-    return { result: { affected, operationId }, audit };
+    // Las tareas editadas directamente se devuelven siempre, aunque la reprogramación no las toque.
+    const updatedRows = await tx.task.findMany({ where: { id: { in: ids } } });
+    const merged = new Map(affected.map((t) => [t.id, t]));
+    for (const r of updatedRows) merged.set(r.id, toTaskDto(r));
+    return { result: { affected: [...merged.values()], operationId }, audit };
   });
 }
 

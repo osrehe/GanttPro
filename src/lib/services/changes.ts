@@ -14,15 +14,27 @@ export interface ChangesPage {
  */
 export async function listChanges(projectId: string, query: ChangesQuery): Promise<ChangesPage> {
   const since = query.since ? new Date(query.since) : null;
+  const createdAt: { gt?: Date; gte?: Date; lte?: Date } = {};
+  if (since) createdAt.gt = since;
+  if (query.from) createdAt.gte = new Date(`${query.from}T00:00:00.000Z`);
+  if (query.to) createdAt.lte = new Date(`${query.to}T23:59:59.999Z`);
   const rows = await prisma.auditLog.findMany({
-    where: { projectId, ...(since ? { createdAt: { gt: since } } : {}) },
+    where: {
+      projectId,
+      ...(Object.keys(createdAt).length > 0 ? { createdAt } : {}),
+      ...(query.entityId ? { entityId: query.entityId } : {}),
+      ...(query.userId ? { userId: query.userId } : {}),
+    },
     include: { user: { select: { name: true } } },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: query.order ?? "asc" },
     take: query.limit ?? 200,
   });
-  const last = rows[rows.length - 1];
+  const newest = rows.reduce<Date | null>(
+    (max, r) => (max === null || r.createdAt > max ? r.createdAt : max),
+    null,
+  );
   return {
     changes: rows.map(toAuditLogDto),
-    cursor: (last ? last.createdAt : (since ?? new Date())).toISOString(),
+    cursor: (newest ?? since ?? new Date()).toISOString(),
   };
 }

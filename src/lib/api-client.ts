@@ -12,8 +12,10 @@ import type {
   TaskDto,
   TaskMutationResult,
 } from "@/lib/dto";
+import type { SettingsDto } from "@/lib/services/settings";
 import type {
   BulkTaskUpdateInput,
+  ChangesQuery,
   CreateAssignmentInput,
   CreateBaselineInput,
   CreateDependencyInput,
@@ -27,6 +29,7 @@ import type {
   UpdateDependencyInput,
   UpdateProjectInput,
   UpdateResourceInput,
+  UpdateSettingsInput,
 } from "@/lib/schemas";
 
 /** Error lanzado por el cliente cuando la API responde con la envolvente de error. */
@@ -81,10 +84,11 @@ export const api = {
     calendar: (id: string) => get<CalendarDto>(`/api/projects/${id}/calendar`),
     updateCalendar: (id: string, input: UpdateCalendarInput) =>
       patch<{ calendar: CalendarDto; affected: TaskDto[] }>(`/api/projects/${id}/calendar`, input),
-    changes: (id: string, since?: string, limit?: number) => {
+    changes: (id: string, query: ChangesQuery = {}) => {
       const params = new URLSearchParams();
-      if (since) params.set("since", since);
-      if (limit) params.set("limit", String(limit));
+      for (const [key, value] of Object.entries(query)) {
+        if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+      }
       const qs = params.toString();
       return get<{ changes: AuditLogDto[]; cursor: string }>(
         `/api/projects/${id}/changes${qs ? `?${qs}` : ""}`,
@@ -138,6 +142,10 @@ export const api = {
     update: (id: string, input: UpdateAssignmentInput) =>
       patch<AssignmentDto>(`/api/assignments/${id}`, input),
     remove: (id: string) => del<{ deleted: true }>(`/api/assignments/${id}`),
+  },
+  settings: {
+    get: () => get<SettingsDto>("/api/settings"),
+    update: (input: UpdateSettingsInput) => patch<SettingsDto>("/api/settings", input),
   },
   baselines: {
     list: (projectId: string) => get<BaselineDto[]>(`/api/projects/${projectId}/baselines`),

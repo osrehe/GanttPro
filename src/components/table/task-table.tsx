@@ -2,6 +2,7 @@
 
 import {
   ArrowDown,
+  AlertTriangle,
   ArrowUp,
   ChevronDown,
   ChevronRight,
@@ -38,6 +39,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { createCalendar, trackingStatus, type TrackingStatus } from "@ganttpro/engine";
+import { TrackingToolbar } from "@/components/tracking/tracking-toolbar";
 import { formatDateCl } from "@/lib/dates";
 import type { TaskDto } from "@/lib/dto";
 import {
@@ -69,7 +72,9 @@ type ColumnKey =
   | "progress"
   | "resources"
   | "predecessors"
-  | "status";
+  | "status"
+  | "expected"
+  | "deviation";
 
 const COLUMNS: Array<{
   key: ColumnKey;
@@ -87,6 +92,8 @@ const COLUMNS: Array<{
   { key: "resources", label: "Recursos", width: "w-44", editable: false },
   { key: "predecessors", label: "Predecesoras", width: "w-40", editable: true },
   { key: "status", label: "Estado", width: "w-36", editable: true },
+  { key: "expected", label: "Esperado", width: "w-24", editable: false, align: "right" },
+  { key: "deviation", label: "Desv.", width: "w-20", editable: false, align: "right" },
 ];
 
 const STATUS_LABEL: Record<TaskDto["status"], string> = {
@@ -114,6 +121,8 @@ export function TaskTable() {
   const assignments = useProjectStore((s) => s.assignments);
   const selectedTaskId = useProjectStore((s) => s.selectedTaskId);
   const highlighted = useProjectStore((s) => s.highlighted);
+  const project = useProjectStore((s) => s.project);
+  const calendarDto = useProjectStore((s) => s.calendar);
   const busy = useProjectStore((s) => s.busy);
   const select = useProjectStore((s) => s.select);
   const openDetail = useProjectStore((s) => s.openDetail);
@@ -121,6 +130,21 @@ export function TaskTable() {
   const setAllCollapsed = useProjectStore((s) => s.setAllCollapsed);
   const run = useProjectStore((s) => s.run);
   const canEdit = role === "ADMIN" || role === "EDITOR";
+
+  // Seguimiento (UC-21): avance esperado y desviación a la fecha de estado.
+  const tracking = useMemo(() => {
+    const map = new Map<string, TrackingStatus>();
+    if (!project?.statusDate || !calendarDto) return map;
+    const calendar = createCalendar({
+      workingDays: calendarDto.workingDays,
+      hoursPerDay: calendarDto.hoursPerDay,
+      holidays: calendarDto.holidays.map((h) => h.date),
+    });
+    for (const t of tasks) {
+      if (!t.isSummary) map.set(t.id, trackingStatus(t, project.statusDate, calendar));
+    }
+    return map;
+  }, [tasks, project?.statusDate, calendarDto]);
 
   const rows = useMemo(() => visibleTasks(tasks, collapsed), [tasks, collapsed]);
   const [focus, setFocus] = useState<Focus>({ row: 0, col: 1 });
@@ -179,9 +203,18 @@ export function TaskTable() {
           return formatPredecessors(task.id, dependencies, tasksById);
         case "status":
           return STATUS_LABEL[task.status];
+        case "expected": {
+          const s = tracking.get(task.id);
+          return s ? `${s.expectedPct} %` : "";
+        }
+        case "deviation": {
+          const s = tracking.get(task.id);
+          if (!s || s.deviationDays === 0) return "";
+          return `${s.deviationDays > 0 ? "+" : ""}${s.deviationDays.toLocaleString("es-CL")} d`;
+        }
       }
     },
-    [dependencies, resourceNames, tasksById],
+    [dependencies, resourceNames, tasksById, tracking],
   );
 
   const editValue = (task: TaskDto, col: ColumnKey): string => {
@@ -538,6 +571,7 @@ export function TaskTable() {
             <ChevronsDownUp className="size-4" />
           )}
         </ToolbarButton>
+        <TrackingToolbar canEdit={canEdit} />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Atajos de teclado" className="ml-auto">
@@ -671,6 +705,13 @@ export function TaskTable() {
                             )}
                             {task.isMilestone ? (
                               <Diamond className="size-3 shrink-0" aria-label="Hito" />
+                            ) : null}
+                            {tracking.get(task.id)?.isLate ? (
+                              <AlertTriangle
+                                className="size-3.5 shrink-0 text-amber-600"
+                                aria-label="Atrasada según la fecha de estado"
+                                data-testid="late-indicator"
+                              />
                             ) : null}
                             <span
                               className={cn(task.isCritical && "text-red-700 dark:text-red-400")}

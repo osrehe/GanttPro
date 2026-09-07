@@ -198,6 +198,26 @@ export type CreateBaselineInput = z.infer<typeof createBaselineSchema>;
 
 export const changesQuerySchema = z.object({
   since: z.string().datetime({ offset: true }).optional(),
+  /** Filtros de la vista de auditoría (UC-36). */
+  entityId: z.string().min(1).optional(),
+  userId: z.string().min(1).optional(),
+  from: isoDateSchema.optional(),
+  to: isoDateSchema.optional(),
+  order: z.enum(["asc", "desc"]).optional(),
   limit: z.coerce.number().int().min(1).max(500).optional(),
 });
 export type ChangesQuery = z.infer<typeof changesQuerySchema>;
+
+// ---------------------------------------------------------------- Configuración global
+
+export const updateSettingsSchema = z
+  .object({
+    ufValue: z.number().positive().nullable(),
+    ufValueDate: isoDateSchema.nullable(),
+    displayCurrency: currencySchema,
+    dateFormat: z.enum(["dd-mm-yyyy", "yyyy-mm-dd"]),
+    logoUrl: z.string().url().nullable(),
+  })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: "No hay cambios que aplicar" });
+export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
