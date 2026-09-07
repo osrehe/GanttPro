@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 6
-completado** (interfaz base: proyectos, tabla WBS con undo/redo, recursos). El siguiente paso es el
-Paso 7: Gantt interactivo.
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 7
+completado** (Gantt interactivo). El siguiente paso es el Paso 8: seguimiento, líneas base,
+histograma de recursos, nivelación, dashboard y auditoría.
 
 Fuentes de verdad, en este orden:
 
@@ -46,6 +46,7 @@ npm run test:coverage    # cobertura del engine con umbral 90 %
 npm run test:unit        # solo engine + web (sin base de datos)
 npm run test:integration # Route Handlers reales contra ganttpro_test (trunca sus tablas)
 npm run test:e2e         # Playwright (Chromium). Requiere BD sembrada; levanta o reutiliza `npm run dev`
+npm run test:e2e:perf    # rendimiento del Gantt con el seed de 1.110 tareas (requiere db:seed:perf); corre aparte
 docker compose up -d     # Postgres 16: BD ganttpro y ganttpro_test. Puerto host: POSTGRES_PORT en .env
 npm run db:migrate       # prisma migrate dev (crea/aplica migraciones en desarrollo)
 npm run db:migrate:deploy
@@ -137,6 +138,25 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   Espacio detalles; Ctrl+Z/Y globales en `useShortcuts`. Al editar escribiendo no se selecciona el
   contenido previo (`selectAll` solo con Enter/F2). Nunca llames a acciones del store dentro de un
   actualizador de `setState`.
+- **Gantt (Paso 7, `src/components/gantt`)**: `gantt-view.tsx` orquesta un único contenedor con
+  scroll compartido: `GanttLeftPane` (tabla reducida, `position: sticky; left: 0`) y la línea de
+  tiempo (`GanttHeader` sticky arriba + `GanttTimeline` en SVG). La geometría viene del engine
+  (`createTimeAxis`, `layoutBars`, `layoutArrows`, `nonWorkingRanges`, `visibleRowRange`) a través
+  del modelo puro `gantt-model.ts` (`ganttRows` es la misma `visibleTasks` que usa la tabla; test de
+  consistencia con 50 operaciones aleatorias). Virtualización vertical con `visibleRowRange` (solo se
+  pintan filas, barras y flechas del rango visible). Escalas día/semana/mes/trimestre, zoom con
+  Ctrl+rueda (`pxPerDay`), "Ajustar al proyecto" (`fitToWidth`), ruta crítica, línea base fantasma
+  (consulta `api.baselines.get`), color por tarea/recurso/estado y etiqueta configurable.
+  Interacciones en `use-gantt-interactions.ts`: mover (`anchorDate`), redimensionar (`endDate`),
+  avance y crear dependencias desde los conectores (tipo inferido con `inferDependencyType`); durante
+  el arrastre **no hay estado de React**: se actualizan por DOM un `rect` y una `line` de
+  previsualización (refs), y al soltar se aplica el engine en el cliente (`scheduleProject` +
+  `applyCriticalPath`) como previsualización optimista y se ejecuta el comando deshacible. Las capas
+  decorativas del SVG (sombreado, grilla, filas, líneas Hoy/estado) llevan `pointer-events-none`
+  para no tapar las barras. Clic en una flecha abre `DependencyPopover` (tipo, desfase, eliminar).
+  Rendimiento medido en `e2e/gantt.perf.spec.ts` (se ejecuta aparte con `npm run test:e2e:perf`
+  porque compite por CPU): marcas `project:hydrated` y `gantt:rendered` con `performance.mark`, y
+  `window.__ganttDragStats` con el costo por evento de arrastre.
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`

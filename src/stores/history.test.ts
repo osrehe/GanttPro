@@ -147,3 +147,30 @@ describe("CommandHistory (UC-25)", () => {
     expect(history.snapshot()).toMatchObject({ canUndo: false, canRedo: false, size: 0 });
   });
 });
+
+describe("CommandHistory — concurrencia", () => {
+  it("un deshacer pedido mientras un comando sigue en vuelo se ejecuta después, en orden", async () => {
+    const history = new CommandHistory();
+    const state = { value: 0 };
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const slow: Command = {
+      label: "lento",
+      async execute() {
+        await gate;
+        state.value += 10;
+      },
+      async undo() {
+        state.value -= 10;
+      },
+    };
+    const running = history.run(slow);
+    expect(history.snapshot().busy).toBe(true);
+    const undone = history.undo(); // encolado: aún no hay nada que deshacer
+    release();
+    await running;
+    expect(await undone).toBe(true);
+    expect(state.value).toBe(0);
+    expect(history.snapshot()).toMatchObject({ busy: false, canUndo: false, canRedo: true });
+  });
+});

@@ -16,7 +16,10 @@ export function ProjectLoader({ projectId, children }: { projectId: string; chil
   });
 
   useEffect(() => {
-    if (query.data) hydrate(query.data);
+    if (query.data) {
+      hydrate(query.data);
+      performance.mark("project:hydrated");
+    }
   }, [query.data, hydrate]);
 
   if (query.isError) {

@@ -1,6 +1,6 @@
 # Plan de pasos — GanttPro
 
-**Estado actual:** Paso 6 completado · Paso 7 (Gantt interactivo) en curso. Ver tabla de pasos y estado por caso de uso al final.
+**Estado actual:** Paso 7 completado · Paso 8 (seguimiento, líneas base, recursos, dashboard, auditoría) en curso. Ver tabla de pasos y estado por caso de uso al final.
 
 Versión 2 (2026-09-06). Fuente de verdad del orden de trabajo. Los prompts detallados de cada paso
 están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
@@ -43,7 +43,7 @@ están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
 | 4    | Datos y autenticación mínima                           | `schema.prisma`, migración, Auth.js credenciales, middleware, `withAudit`, seed (≈40 tareas) y seed-perf (1.000)                     | `db:migrate` y `db:seed` desde cero; e2e de login correcto/incorrecto y redirección                                             | Completado |
 | 5    | API                                                    | CRUD, `PATCH /tasks/:id` con `affected`, `bulk`, `move`, `changes`, `api-client`                                                     | Integración: flujo mover predecesora; ciclo → 422 `CYCLE`; reindentar → WBS correcto; sin acceso → 403                          | Completado |
 | 6    | UI base                                                | Layout, proyectos, store con undo/redo, tabla WBS, panel de detalle, recursos                                                        | Creación solo con teclado; undo/redo 20 operaciones; e2e WBS 1, 1.1, 1.2 con rollup; consola limpia                             | Completado |
-| 7    | Gantt interactivo                                      | Split view, escalas, barras, drag & drop, dependencias por drag, flechas, virtualización                                             | e2e drag 3 días → sucesora FS; dependencia por drag; render < 1,5 s y drag < 16 ms/frame con 1.000 tareas; test de consistencia | Pendiente  |
+| 7    | Gantt interactivo                                      | Split view, escalas, barras, drag & drop, dependencias por drag, flechas, virtualización                                             | e2e drag 3 días → sucesora FS; dependencia por drag; render < 1,5 s y drag < 16 ms/frame con 1.000 tareas; test de consistencia | Completado |
 | 8    | Seguimiento, baselines, recursos, dashboard, auditoría | Fecha de estado, baselines, histograma, nivelación, dashboard con curva S, vista de auditoría                                        | Tests de varianza y nivelación; e2e baseline → mover 2 tareas → tabla comparativa correcta                                      | Pendiente  |
 | 9    | Exportación e importación                              | Excel, PDF vía `/print/gantt` + Puppeteer, PNG, import Excel/CSV y MSPDI                                                             | Round-trip Excel; PDF con páginas y texto "1.1"; round-trip plantilla; import MSPDI sin pérdida                                 | Pendiente  |
 | 10   | Roles, colaboración y pulido                           | `ProjectMember`, `ShareLink`, polling, comentarios, atajos, modo oscuro, accesibilidad, configuración                                | Lector no edita (UI y 403); dos contextos ven cambios en < 3 s; axe sin violaciones críticas                                    | Pendiente  |
@@ -75,43 +75,43 @@ engine (Paso 2), el seed con feriados de Chile 2026 (Paso 4) y la interfaz de co
 
 Se actualiza al cerrar cada paso. Estados: **Pendiente** → **Engine** (lógica en `packages/engine` con tests) → **API** (expuesto en Route Handlers) → **Completado** (disponible en la UI con e2e).
 
-| UC    | Título                            | Estado     | Paso           | Notas                                                            |
-| ----- | --------------------------------- | ---------- | -------------- | ---------------------------------------------------------------- |
-| UC-01 | Crear proyecto                    | Completado | 5 · 6          | tarjetas y diálogo en `/projects`; e2e                           |
-| UC-02 | Duplicar proyecto                 | Completado | 5 · 6          | botón en la tarjeta                                              |
-| UC-03 | Archivar y restaurar proyecto     | Completado | 5 · 6          | botón en la tarjeta; filtro "Mostrar archivados"                 |
-| UC-04 | Calendario laboral y feriados     | API        | 2 · 4 · 5 · 10 | `GET/PATCH /api/projects/:id/calendar` reprograma                |
-| UC-05 | Crear tarea, subtarea e hito      | Completado | 5 · 6          | barra y teclado (Insert, Shift+Insert); e2e                      |
-| UC-06 | Editar campos de una tarea        | Completado | 5 · 6          | edición inline y panel de detalle                                |
-| UC-07 | Indentar, desindentar y reordenar | Completado | 2 · 5 · 6      | Tab/Shift+Tab, subir/bajar; e2e WBS 1, 1.1, 1.2                  |
-| UC-08 | Eliminar tarea                    | Completado | 5 · 6          | confirmación; deshacer recrea el subárbol                        |
-| UC-09 | Rollup de resúmenes               | Completado | 2 · 6          | visible en la tabla; e2e verifica fechas del resumen             |
-| UC-10 | Crear y editar dependencias       | Completado | 2 · 5 · 6      | columna Predecesoras y editor del panel; drag en Gantt en Paso 7 |
-| UC-11 | Reprogramación de sucesoras       | API        | 2 · 5          | reprogramación en servidor en cada mutación; `affected`          |
-| UC-12 | Mover tarea con predecesoras      | Engine     | 2 · 7          | `anchorDate`                                                     |
-| UC-13 | Quitar dependencia                | Completado | 2 · 5 · 6      | columna y panel                                                  |
-| UC-14 | Duración y avance desde el Gantt  | Pendiente  | 7              |                                                                  |
-| UC-15 | Gestionar recursos                | Completado | 5 · 6          | página Recursos con CRUD y asignaciones; e2e                     |
-| UC-16 | Asignar recursos                  | Completado | 3 · 5 · 6      | pestaña Recursos del panel de detalle                            |
-| UC-17 | Sobreasignación e histograma      | Engine     | 3 · 8          | `resourceLoad`, `aggregateWeekly`                                |
-| UC-18 | Nivelar recursos                  | Pendiente  | 8              |                                                                  |
-| UC-19 | Líneas base                       | API        | 3 · 5 · 8      | `POST /api/projects/:id/baselines` (máx 5), detalle con varianza |
-| UC-20 | Ruta crítica y holguras           | Engine     | 3 · 8          | `criticalPath`                                                   |
-| UC-21 | Fecha de estado y atraso          | Engine     | 3 · 8          | `expectedProgressAt`, `bulkProgressUpdates`                      |
-| UC-22 | Dashboard y curva S               | Pendiente  | 8              |                                                                  |
-| UC-23 | Vista Tabla                       | Completado | 6              | grid con teclado, resaltado 1 s, consola limpia en e2e           |
-| UC-24 | Vista Gantt                       | Engine     | 3 · 7          | modelo de layout (`layout.ts`)                                   |
-| UC-25 | Deshacer y rehacer                | Completado | 5 · 6          | `CommandHistory` (test de 20 operaciones), Ctrl+Z/Y; e2e         |
-| UC-26 | Exportar a Excel                  | Pendiente  | 9              |                                                                  |
-| UC-27 | Exportar a PDF                    | Pendiente  | 9              |                                                                  |
-| UC-28 | Exportar a PNG                    | Pendiente  | 9              |                                                                  |
-| UC-29 | Importar Excel/CSV                | Pendiente  | 9              |                                                                  |
-| UC-30 | Importar MS Project XML           | Pendiente  | 9              |                                                                  |
-| UC-31 | Iniciar sesión                    | Completado | 4              | Auth.js credenciales, middleware, e2e de login                   |
-| UC-32 | Roles por proyecto                | Pendiente  | 10             |                                                                  |
-| UC-33 | Compartir por enlace              | Pendiente  | 10             |                                                                  |
-| UC-34 | Colaboración simultánea           | API        | 5 · 10         | `GET /api/projects/:id/changes?since=`                           |
-| UC-35 | Comentarios y menciones           | Pendiente  | 10             |                                                                  |
-| UC-36 | Historial de cambios              | API        | 5 · 8          | toda mutación registra `AuditLog`; feed `/changes`               |
-| UC-37 | Configuración global              | Pendiente  | 10             |                                                                  |
-| UC-38 | Costos                            | Engine     | 3 · 8          | `projectCosts`, conversión UF/CLP                                |
+| UC    | Título                            | Estado     | Paso           | Notas                                                                                                                      |
+| ----- | --------------------------------- | ---------- | -------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| UC-01 | Crear proyecto                    | Completado | 5 · 6          | tarjetas y diálogo en `/projects`; e2e                                                                                     |
+| UC-02 | Duplicar proyecto                 | Completado | 5 · 6          | botón en la tarjeta                                                                                                        |
+| UC-03 | Archivar y restaurar proyecto     | Completado | 5 · 6          | botón en la tarjeta; filtro "Mostrar archivados"                                                                           |
+| UC-04 | Calendario laboral y feriados     | API        | 2 · 4 · 5 · 10 | `GET/PATCH /api/projects/:id/calendar` reprograma                                                                          |
+| UC-05 | Crear tarea, subtarea e hito      | Completado | 5 · 6          | barra y teclado (Insert, Shift+Insert); e2e                                                                                |
+| UC-06 | Editar campos de una tarea        | Completado | 5 · 6          | edición inline y panel de detalle                                                                                          |
+| UC-07 | Indentar, desindentar y reordenar | Completado | 2 · 5 · 6      | Tab/Shift+Tab, subir/bajar; e2e WBS 1, 1.1, 1.2                                                                            |
+| UC-08 | Eliminar tarea                    | Completado | 5 · 6          | confirmación; deshacer recrea el subárbol                                                                                  |
+| UC-09 | Rollup de resúmenes               | Completado | 2 · 6          | visible en la tabla; e2e verifica fechas del resumen                                                                       |
+| UC-10 | Crear y editar dependencias       | Completado | 2 · 5 · 6 · 7  | columna, panel y arrastre de conectores en el Gantt con popover en la flecha                                               |
+| UC-11 | Reprogramación de sucesoras       | API        | 2 · 5          | reprogramación en servidor en cada mutación; `affected`                                                                    |
+| UC-12 | Mover tarea con predecesoras      | Completado | 2 · 7          | arrastre de barra en el Gantt actualiza `anchorDate`; e2e mueve 3 días                                                     |
+| UC-13 | Quitar dependencia                | Completado | 2 · 5 · 6      | columna y panel                                                                                                            |
+| UC-14 | Duración y avance desde el Gantt  | Completado | 7              | handles de borde derecho y de avance con previsualización                                                                  |
+| UC-15 | Gestionar recursos                | Completado | 5 · 6          | página Recursos con CRUD y asignaciones; e2e                                                                               |
+| UC-16 | Asignar recursos                  | Completado | 3 · 5 · 6      | pestaña Recursos del panel de detalle                                                                                      |
+| UC-17 | Sobreasignación e histograma      | Engine     | 3 · 8          | `resourceLoad`, `aggregateWeekly`                                                                                          |
+| UC-18 | Nivelar recursos                  | Pendiente  | 8              |                                                                                                                            |
+| UC-19 | Líneas base                       | API        | 3 · 5 · 8      | `POST /api/projects/:id/baselines` (máx 5), detalle con varianza                                                           |
+| UC-20 | Ruta crítica y holguras           | Engine     | 3 · 8          | `criticalPath`                                                                                                             |
+| UC-21 | Fecha de estado y atraso          | Engine     | 3 · 8          | `expectedProgressAt`, `bulkProgressUpdates`                                                                                |
+| UC-22 | Dashboard y curva S               | Pendiente  | 8              |                                                                                                                            |
+| UC-23 | Vista Tabla                       | Completado | 6              | grid con teclado, resaltado 1 s, consola limpia en e2e                                                                     |
+| UC-24 | Vista Gantt                       | Completado | 3 · 7          | SVG virtualizado, 4 escalas, zoom, ajustar, ruta crítica, baseline, colores; 766 ms con 1.110 tareas; test de consistencia |
+| UC-25 | Deshacer y rehacer                | Completado | 5 · 6          | `CommandHistory` (test de 20 operaciones), Ctrl+Z/Y; e2e                                                                   |
+| UC-26 | Exportar a Excel                  | Pendiente  | 9              |                                                                                                                            |
+| UC-27 | Exportar a PDF                    | Pendiente  | 9              |                                                                                                                            |
+| UC-28 | Exportar a PNG                    | Pendiente  | 9              |                                                                                                                            |
+| UC-29 | Importar Excel/CSV                | Pendiente  | 9              |                                                                                                                            |
+| UC-30 | Importar MS Project XML           | Pendiente  | 9              |                                                                                                                            |
+| UC-31 | Iniciar sesión                    | Completado | 4              | Auth.js credenciales, middleware, e2e de login                                                                             |
+| UC-32 | Roles por proyecto                | Pendiente  | 10             |                                                                                                                            |
+| UC-33 | Compartir por enlace              | Pendiente  | 10             |                                                                                                                            |
+| UC-34 | Colaboración simultánea           | API        | 5 · 10         | `GET /api/projects/:id/changes?since=`                                                                                     |
+| UC-35 | Comentarios y menciones           | Pendiente  | 10             |                                                                                                                            |
+| UC-36 | Historial de cambios              | API        | 5 · 8          | toda mutación registra `AuditLog`; feed `/changes`                                                                         |
+| UC-37 | Configuración global              | Pendiente  | 10             |                                                                                                                            |
+| UC-38 | Costos                            | Engine     | 3 · 8          | `projectCosts`, conversión UF/CLP                                                                                          |

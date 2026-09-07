@@ -9,6 +9,8 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
  */
 export default defineConfig({
   testDir: "./e2e",
+  // El test de rendimiento se ejecuta aparte (npm run test:e2e:perf) para que no compita por CPU.
+  testIgnore: process.env.E2E_PERF ? undefined : /.perf.spec.ts$/,
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,

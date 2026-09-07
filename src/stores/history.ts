@@ -4,6 +4,9 @@
  * Cada comando sabe ejecutarse y deshacerse contra la API. Como rehacer una creación produce ids
  * nuevos en el servidor, el contexto mantiene un mapa de alias `idOriginal → idActual` y los
  * comandos resuelven todos los ids a través de él antes de llamar a la API.
+ *
+ * Las operaciones se encolan: si llega un deshacer mientras un comando sigue en vuelo (la
+ * previsualización optimista permite seguir interactuando), se ejecuta cuando aquel termina.
  */
 
 export interface CommandContext {
@@ -35,7 +38,8 @@ export class CommandHistory implements CommandContext {
   private future: Command[] = [];
   private readonly aliases = new Map<string, string>();
   private readonly listeners = new Set<Listener>();
-  private busy = false;
+  private pending = 0;
+  private queue: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly limit = 100) {}
 
@@ -55,7 +59,7 @@ export class CommandHistory implements CommandContext {
 
   /** Ejecuta un comando nuevo; descarta lo que hubiera para rehacer. */
   async run(command: Command): Promise<void> {
-    await this.guard(async () => {
+    await this.enqueue(async () => {
       await command.execute(this);
       this.past.push(command);
       if (this.past.length > this.limit) this.past.shift();
@@ -63,26 +67,28 @@ export class CommandHistory implements CommandContext {
     });
   }
 
+  /** Deshace el último comando; `false` si no había nada que deshacer. */
   async undo(): Promise<boolean> {
-    const command = this.past[this.past.length - 1];
-    if (!command) return false;
-    await this.guard(async () => {
+    return this.enqueue(async () => {
+      const command = this.past[this.past.length - 1];
+      if (!command) return false;
       await command.undo(this);
       this.past.pop();
       this.future.push(command);
+      return true;
     });
-    return true;
   }
 
+  /** Rehace el último comando deshecho; `false` si no había nada que rehacer. */
   async redo(): Promise<boolean> {
-    const command = this.future[this.future.length - 1];
-    if (!command) return false;
-    await this.guard(async () => {
+    return this.enqueue(async () => {
+      const command = this.future[this.future.length - 1];
+      if (!command) return false;
       await command.execute(this);
       this.future.pop();
       this.past.push(command);
+      return true;
     });
-    return true;
   }
 
   clear(): void {
@@ -100,7 +106,7 @@ export class CommandHistory implements CommandContext {
       canRedo: this.future.length > 0,
       undoLabel,
       redoLabel,
-      busy: this.busy,
+      busy: this.pending > 0,
       size: this.past.length,
     };
   }
@@ -110,14 +116,24 @@ export class CommandHistory implements CommandContext {
     return () => this.listeners.delete(listener);
   }
 
-  private async guard(fn: () => Promise<void>): Promise<void> {
-    if (this.busy) throw new Error("Hay una operación en curso; espera a que termine");
-    this.busy = true;
+  /** Serializa las operaciones: cada una espera a que termine la anterior (con éxito o error). */
+  private enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    this.pending++;
     this.notify();
+    const previous = this.queue;
+    const operation = previous.then(
+      () => this.execute(fn),
+      () => this.execute(fn),
+    );
+    this.queue = operation.catch(() => undefined);
+    return operation;
+  }
+
+  private async execute<T>(fn: () => Promise<T>): Promise<T> {
     try {
-      await fn();
+      return await fn();
     } finally {
-      this.busy = false;
+      this.pending--;
       this.notify();
     }
   }
