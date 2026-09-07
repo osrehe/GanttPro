@@ -18,11 +18,12 @@ cierre. Zona horaria: America/Santiago. El commit de cada paso se obtiene con `g
 | 0    | Bootstrap                                    | 2026-09-06 22:57 | 2026-09-06 23:12 | 15 min   | ~96 k         | 0          | `paso-0`  |
 | 1    | Especificación y ADRs                        | 2026-09-06 23:39 | 2026-09-06 23:52 | 13 min   | ~40 k         | 2 (~465 k) | `paso-1`  |
 | 2    | Engine: calendario, WBS, scheduling y ciclos | 2026-09-06 23:57 | 2026-09-07 00:10 | 13 min   | ~73 k         | 0          | `paso-2`  |
+| 3    | Engine: CPM, recursos, línea base y layout   | 2026-09-07 00:12 | 2026-09-07 00:22 | 10 min   | ~65 k         | 0          | `paso-3`  |
 
 ## Totales
 
 | Concepto          | Valor                                                |
 | ----------------- | ---------------------------------------------------- |
-| Tiempo acumulado  | 74 min                                               |
-| Tokens acumulados | ~286 k en la sesión principal + ~465 k en subagentes |
-| Pasos completados | 3 de 12                                              |
+| Tiempo acumulado  | 84 min                                               |
+| Tokens acumulados | ~351 k en la sesión principal + ~465 k en subagentes |
+| Pasos completados | 4 de 12                                              |
