@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 1
-completado** (especificación y ADRs). El código de dominio aún no existe; el siguiente paso es el engine (calendario, WBS, scheduling).
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 2
+completado** (engine: calendario, WBS, scheduling y ciclos). El siguiente paso es el Paso 3: CPM, carga de recursos, varianza y modelo de layout en el engine.
 
 Fuentes de verdad, en este orden:
 
@@ -66,7 +66,7 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
 - **`packages/engine` (`@ganttpro/engine`) es TypeScript puro.** No puede importar React, Next, Prisma
   ni `@/*`; ESLint lo bloquea (`no-restricted-imports`) y su `tsconfig` no incluye la lib DOM. Next lo
   consume desde el código fuente vía `transpilePackages`; Vitest y `tsc` lo resuelven con el alias
-  `@ganttpro/engine`. Aquí vivirán calendario, scheduling, WBS, CPM, carga de recursos, varianza y el
+  `@ganttpro/engine`. Módulos actuales: `dates.ts` (fechas date-only), `calendar.ts` (`WorkingCalendar` con índice precomputado), `wbs.ts` (renumerar, indentar, desindentar, mover), `cycles.ts` (`detectCycle`, `topologicalOrder`), `schedule.ts` (`scheduleProject`, `earliestStartFromPredecessor`), `errors.ts` (`EngineError` con códigos). Pendientes: CPM, carga de recursos, varianza y el
   modelo de layout del Gantt. Objetivo de cobertura ≥ 90 %.
 - **Fechas de plan son date-only** (`YYYY-MM-DD`). Usa las utilidades de `packages/engine/src/dates.ts`
   (`addDays`, `diffDays`, `dayOfWeek`, `toEpochDay`…). Nunca `new Date()` local ni librerías de fechas

@@ -41,17 +41,33 @@ export function assertIsoDate(value: string): IsoDate {
   return value;
 }
 
+/**
+ * Memoización de las conversiones en ambos sentidos. Un proyecto repite las mismas fechas miles de
+ * veces durante una reprogramación; parsear el string cada vez dominaba el tiempo de `scheduleProject`.
+ * Los mapas se vacían al superar un tamaño acotado para que no crezcan sin límite.
+ */
+const CACHE_LIMIT = 50_000;
+const epochByDate = new Map<string, number>();
+const dateByEpoch = new Map<number, IsoDate>();
+
 /** Convierte una fecha ISO a días transcurridos desde 1970-01-01. */
 export function toEpochDay(date: IsoDate): number {
+  const cached = epochByDate.get(date);
+  if (cached !== undefined) return cached;
   assertIsoDate(date);
   const year = Number(date.slice(0, 4));
   const month = Number(date.slice(5, 7));
   const day = Number(date.slice(8, 10));
-  return Date.UTC(year, month - 1, day) / MS_PER_DAY;
+  const epoch = Date.UTC(year, month - 1, day) / MS_PER_DAY;
+  if (epochByDate.size >= CACHE_LIMIT) epochByDate.clear();
+  epochByDate.set(date, epoch);
+  return epoch;
 }
 
 /** Convierte días transcurridos desde 1970-01-01 a fecha ISO. */
 export function fromEpochDay(epochDay: number): IsoDate {
+  const cached = dateByEpoch.get(epochDay);
+  if (cached !== undefined) return cached;
   if (!Number.isInteger(epochDay)) {
     throw new Error(`Epoch day inválido: se esperaba un entero y se recibió ${epochDay}`);
   }
@@ -59,7 +75,10 @@ export function fromEpochDay(epochDay: number): IsoDate {
   const year = String(utc.getUTCFullYear()).padStart(4, "0");
   const month = String(utc.getUTCMonth() + 1).padStart(2, "0");
   const day = String(utc.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const iso = `${year}-${month}-${day}`;
+  if (dateByEpoch.size >= CACHE_LIMIT) dateByEpoch.clear();
+  dateByEpoch.set(epochDay, iso);
+  return iso;
 }
 
 /** Suma (o resta, si `days` es negativo) días calendario. */

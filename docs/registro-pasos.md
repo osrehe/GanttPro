@@ -11,17 +11,18 @@ se anotan aparte cuando se usan.
 **Cómo se mide el tiempo.** Hora de inicio: primer mensaje del paso. Hora de fin: commit de
 cierre. Zona horaria: America/Santiago. El commit de cada paso se obtiene con `git rev-parse <tag>`.
 
-| Paso | Descripción                     | Inicio           | Fin              | Duración | Tokens aprox. | Subagentes | Tag       |
-| ---- | ------------------------------- | ---------------- | ---------------- | -------- | ------------- | ---------- | --------- |
-| —    | Análisis inicial y CLAUDE.md v0 | 2026-09-06 22:24 | 2026-09-06 22:35 | 11 min   | ~58 k         | 0          | —         |
-| —    | Revisión del plan (v1 → v2)     | 2026-09-06 22:35 | 2026-09-06 22:57 | 22 min   | ~19 k         | 0          | `plan-v2` |
-| 0    | Bootstrap                       | 2026-09-06 22:57 | 2026-09-06 23:12 | 15 min   | ~96 k         | 0          | `paso-0`  |
-| 1    | Especificación y ADRs           | 2026-09-06 23:39 | 2026-09-06 23:52 | 13 min   | ~40 k         | 2 (~465 k) | `paso-1`  |
+| Paso | Descripción                                  | Inicio           | Fin              | Duración | Tokens aprox. | Subagentes | Tag       |
+| ---- | -------------------------------------------- | ---------------- | ---------------- | -------- | ------------- | ---------- | --------- |
+| —    | Análisis inicial y CLAUDE.md v0              | 2026-09-06 22:24 | 2026-09-06 22:35 | 11 min   | ~58 k         | 0          | —         |
+| —    | Revisión del plan (v1 → v2)                  | 2026-09-06 22:35 | 2026-09-06 22:57 | 22 min   | ~19 k         | 0          | `plan-v2` |
+| 0    | Bootstrap                                    | 2026-09-06 22:57 | 2026-09-06 23:12 | 15 min   | ~96 k         | 0          | `paso-0`  |
+| 1    | Especificación y ADRs                        | 2026-09-06 23:39 | 2026-09-06 23:52 | 13 min   | ~40 k         | 2 (~465 k) | `paso-1`  |
+| 2    | Engine: calendario, WBS, scheduling y ciclos | 2026-09-06 23:57 | 2026-09-07 00:10 | 13 min   | ~73 k         | 0          | `paso-2`  |
 
 ## Totales
 
 | Concepto          | Valor                                                |
 | ----------------- | ---------------------------------------------------- |
-| Tiempo acumulado  | 61 min                                               |
-| Tokens acumulados | ~213 k en la sesión principal + ~465 k en subagentes |
-| Pasos completados | 2 de 12                                              |
+| Tiempo acumulado  | 74 min                                               |
+| Tokens acumulados | ~286 k en la sesión principal + ~465 k en subagentes |
+| Pasos completados | 3 de 12                                              |
