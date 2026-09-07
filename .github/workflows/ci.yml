@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  DATABASE_URL: postgresql://ganttpro:ganttpro@localhost:5432/ganttpro?schema=public
+  DATABASE_URL_TEST: postgresql://ganttpro:ganttpro@localhost:5432/ganttpro_test?schema=public
+  AUTH_SECRET: ci-secret-no-usar-en-produccion-0123456789
+  AUTH_TRUST_HOST: "true"
+  SEED_PASSWORD: GanttPro2026!
+
 jobs:
   verificar:
     name: Lint, tipos y tests
@@ -16,7 +23,46 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run test
+
+  e2e:
+    name: Migración, seed y e2e
+    runs-on: ubuntu-latest
+    needs: verificar
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ganttpro
+          POSTGRES_PASSWORD: ganttpro
+          POSTGRES_DB: ganttpro
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ganttpro -d ganttpro"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: psql postgresql://ganttpro:ganttpro@localhost:5432/ganttpro -c "CREATE DATABASE ganttpro_test OWNER ganttpro;"
+      - run: npx prisma migrate deploy
+      - run: npm run db:seed
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

@@ -77,36 +77,37 @@ Usuario autenticado. Los roles no son globales: se asignan por proyecto en `Proj
 
 ### Project
 
-| Campo               | Tipo              | Oblig. | Reglas                                                           |
-| ------------------- | ----------------- | ------ | ---------------------------------------------------------------- |
-| `id`                | String            | sí     |                                                                  |
-| `name`              | String            | sí     | 1–120 caracteres                                                 |
-| `description`       | String            | no     |                                                                  |
-| `status`            | ProjectStatus     | sí     | default `ACTIVE`; archivado = solo lectura                       |
-| `startDate`         | Date              | sí     | fecha de inicio del proyecto; ancla por defecto de tareas nuevas |
-| `statusDate`        | Date              | no     | fecha de estado para cálculo de atraso; nulo = hoy               |
-| `progressWeighting` | ProgressWeighting | sí     | default `DURATION`; cómo ponderar el avance de tareas resumen    |
-| `calendarId`        | String            | sí     | calendario base (FK a `Calendar`, único)                         |
-| `createdById`       | String            | sí     | FK a `User`                                                      |
-| `archivedAt`        | DateTime          | no     |                                                                  |
-| `createdAt`         | DateTime          | sí     |                                                                  |
-| `updatedAt`         | DateTime          | sí     |                                                                  |
+| Campo               | Tipo              | Oblig. | Reglas                                                                                        |
+| ------------------- | ----------------- | ------ | --------------------------------------------------------------------------------------------- |
+| `id`                | String            | sí     |                                                                                               |
+| `name`              | String            | sí     | 1–120 caracteres                                                                              |
+| `description`       | String            | no     |                                                                                               |
+| `status`            | ProjectStatus     | sí     | default `ACTIVE`; archivado = solo lectura                                                    |
+| `startDate`         | Date              | sí     | fecha de inicio del proyecto; ancla por defecto de tareas nuevas                              |
+| `statusDate`        | Date              | no     | fecha de estado para cálculo de atraso; nulo = hoy                                            |
+| `progressWeighting` | ProgressWeighting | sí     | default `DURATION`; cómo ponderar el avance de tareas resumen                                 |
+| `calendarId`        | —                 | —      | (eliminado en el Paso 4) el calendario base es el `Calendar` del proyecto con `isBase = true` |
+| `createdById`       | String            | sí     | FK a `User`                                                                                   |
+| `archivedAt`        | DateTime          | no     |                                                                                               |
+| `createdAt`         | DateTime          | sí     |                                                                                               |
+| `updatedAt`         | DateTime          | sí     |                                                                                               |
 
 Índices: `status`, `createdById`.
 
 ### Calendar
 
-Calendario laboral. Cada proyecto tiene uno base; un recurso puede tener el suyo.
+Calendario laboral. Cada proyecto tiene exactamente uno base (`isBase = true`, garantizado por un índice único parcial creado en la migración inicial); un recurso puede tener el suyo. Se modela así, y no con `Project.calendarId`, para evitar la dependencia circular de claves foráneas al crear un proyecto.
 
-| Campo         | Tipo     | Oblig. | Reglas                                                                        |
-| ------------- | -------- | ------ | ----------------------------------------------------------------------------- |
-| `id`          | String   | sí     |                                                                               |
-| `projectId`   | String   | sí     | FK a `Project`; el calendario pertenece al proyecto que lo usa                |
-| `name`        | String   | sí     |                                                                               |
-| `workingDays` | Int[]    | sí     | días de la semana laborables, 0 = domingo … 6 = sábado; default `[1,2,3,4,5]` |
-| `hoursPerDay` | Decimal  | sí     | > 0; default 8                                                                |
-| `createdAt`   | DateTime | sí     |                                                                               |
-| `updatedAt`   | DateTime | sí     |                                                                               |
+| Campo         | Tipo     | Oblig. | Reglas                                                                                   |
+| ------------- | -------- | ------ | ---------------------------------------------------------------------------------------- |
+| `id`          | String   | sí     |                                                                                          |
+| `projectId`   | String   | sí     | FK a `Project`; el calendario pertenece al proyecto que lo usa                           |
+| `name`        | String   | sí     |                                                                                          |
+| `isBase`      | Boolean  | sí     | true en el calendario base del proyecto; índice único parcial `(projectId) WHERE isBase` |
+| `workingDays` | Int[]    | sí     | días de la semana laborables, 0 = domingo … 6 = sábado; default `[1,2,3,4,5]`            |
+| `hoursPerDay` | Decimal  | sí     | > 0; default 8                                                                           |
+| `createdAt`   | DateTime | sí     |                                                                                          |
+| `updatedAt`   | DateTime | sí     |                                                                                          |
 
 Índices: `projectId`.
 

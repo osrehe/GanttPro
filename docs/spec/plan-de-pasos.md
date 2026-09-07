@@ -1,5 +1,7 @@
 # Plan de pasos — GanttPro
 
+**Estado actual:** Paso 4 completado · Paso 5 (API) en curso. Ver tabla de pasos y estado por caso de uso al final.
+
 Versión 2 (2026-09-06). Fuente de verdad del orden de trabajo. Los prompts detallados de cada paso
 están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
 
@@ -38,7 +40,7 @@ están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
 | 1    | Especificación y ADRs                                  | `docs/spec/{funcional,modelo-datos,arquitectura}.md`, `docs/adr/ADR-001…010.md`, matriz paso ↔ casos de uso                          | Nombres consistentes entre docs; cada caso de uso con Given/When/Then; cada ADR con contexto, decisión y consecuencias          | Completado |
 | 2    | Engine: calendario, WBS y scheduling                   | `calendar.ts`, `wbs.ts`, `schedule.ts`, `cycles.ts` y tests                                                                          | Cobertura ≥ 90%; `scheduleProject` con 1.000 tareas / 1.500 dependencias < 50 ms                                                | Completado |
 | 3    | Engine: CPM, recursos, varianza y layout               | `cpm.ts`, `resources.ts`, `baseline.ts`, `layout.ts` y tests                                                                         | Cobertura ≥ 90%; CPM contra ejemplo con holguras conocidas; snapshots del layout en 4 escalas                                   | Completado |
-| 4    | Datos y autenticación mínima                           | `schema.prisma`, migración, Auth.js credenciales, middleware, `withAudit`, seed (≈40 tareas) y seed-perf (1.000)                     | `db:migrate` y `db:seed` desde cero; e2e de login correcto/incorrecto y redirección                                             | Pendiente  |
+| 4    | Datos y autenticación mínima                           | `schema.prisma`, migración, Auth.js credenciales, middleware, `withAudit`, seed (≈40 tareas) y seed-perf (1.000)                     | `db:migrate` y `db:seed` desde cero; e2e de login correcto/incorrecto y redirección                                             | Completado |
 | 5    | API                                                    | CRUD, `PATCH /tasks/:id` con `affected`, `bulk`, `move`, `changes`, `api-client`                                                     | Integración: flujo mover predecesora; ciclo → 422 `CYCLE`; reindentar → WBS correcto; sin acceso → 403                          | Pendiente  |
 | 6    | UI base                                                | Layout, proyectos, store con undo/redo, tabla WBS, panel de detalle, recursos                                                        | Creación solo con teclado; undo/redo 20 operaciones; e2e WBS 1, 1.1, 1.2 con rollup; consola limpia                             | Pendiente  |
 | 7    | Gantt interactivo                                      | Split view, escalas, barras, drag & drop, dependencias por drag, flechas, virtualización                                             | e2e drag 3 días → sucesora FS; dependencia por drag; render < 1,5 s y drag < 16 ms/frame con 1.000 tareas; test de consistencia | Pendiente  |
@@ -68,3 +70,48 @@ cálculo se implementa y prueba en `packages/engine` en ese paso, antes de expon
 
 Cobertura: los 38 casos de uso quedan asignados a un paso de entrega. UC-04 se divide entre el
 engine (Paso 2), el seed con feriados de Chile 2026 (Paso 4) y la interfaz de configuración (Paso 10).
+
+## Estado por caso de uso
+
+Se actualiza al cerrar cada paso. Estados: **Pendiente** → **Engine** (lógica en `packages/engine` con tests) → **API** (expuesto en Route Handlers) → **Completado** (disponible en la UI con e2e).
+
+| UC    | Título                            | Estado     | Paso       | Notas                                                                                                       |
+| ----- | --------------------------------- | ---------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| UC-01 | Crear proyecto                    | Pendiente  | 6          |                                                                                                             |
+| UC-02 | Duplicar proyecto                 | Pendiente  | 6          |                                                                                                             |
+| UC-03 | Archivar y restaurar proyecto     | Pendiente  | 6          |                                                                                                             |
+| UC-04 | Calendario laboral y feriados     | Engine     | 2 · 4 · 10 | `WorkingCalendar`; feriados Chile 2026 en `src/lib/holidays`, `Calendar` + `Holiday` en Prisma y en el seed |
+| UC-05 | Crear tarea, subtarea e hito      | Pendiente  | 6          |                                                                                                             |
+| UC-06 | Editar campos de una tarea        | Pendiente  | 6          |                                                                                                             |
+| UC-07 | Indentar, desindentar y reordenar | Engine     | 2 · 5 · 6  | `wbs.ts` con las reglas de MS Project                                                                       |
+| UC-08 | Eliminar tarea                    | Pendiente  | 6          |                                                                                                             |
+| UC-09 | Rollup de resúmenes               | Engine     | 2          | `scheduleProject`                                                                                           |
+| UC-10 | Crear y editar dependencias       | Engine     | 2 · 5 · 6  | ciclos con `wbsCode`, rechazo de resúmenes                                                                  |
+| UC-11 | Reprogramación de sucesoras       | Engine     | 2 · 5      | 19 ms con 1.110 tareas                                                                                      |
+| UC-12 | Mover tarea con predecesoras      | Engine     | 2 · 7      | `anchorDate`                                                                                                |
+| UC-13 | Quitar dependencia                | Engine     | 2 · 6      |                                                                                                             |
+| UC-14 | Duración y avance desde el Gantt  | Pendiente  | 7          |                                                                                                             |
+| UC-15 | Gestionar recursos                | Pendiente  | 6          |                                                                                                             |
+| UC-16 | Asignar recursos                  | Engine     | 3 · 6      | `assignmentHours`                                                                                           |
+| UC-17 | Sobreasignación e histograma      | Engine     | 3 · 8      | `resourceLoad`, `aggregateWeekly`                                                                           |
+| UC-18 | Nivelar recursos                  | Pendiente  | 8          |                                                                                                             |
+| UC-19 | Líneas base                       | Engine     | 3 · 8      | `takeBaseline`, `compareWithBaseline`                                                                       |
+| UC-20 | Ruta crítica y holguras           | Engine     | 3 · 8      | `criticalPath`                                                                                              |
+| UC-21 | Fecha de estado y atraso          | Engine     | 3 · 8      | `expectedProgressAt`, `bulkProgressUpdates`                                                                 |
+| UC-22 | Dashboard y curva S               | Pendiente  | 8          |                                                                                                             |
+| UC-23 | Vista Tabla                       | Pendiente  | 6          |                                                                                                             |
+| UC-24 | Vista Gantt                       | Engine     | 3 · 7      | modelo de layout (`layout.ts`)                                                                              |
+| UC-25 | Deshacer y rehacer                | Pendiente  | 6          |                                                                                                             |
+| UC-26 | Exportar a Excel                  | Pendiente  | 9          |                                                                                                             |
+| UC-27 | Exportar a PDF                    | Pendiente  | 9          |                                                                                                             |
+| UC-28 | Exportar a PNG                    | Pendiente  | 9          |                                                                                                             |
+| UC-29 | Importar Excel/CSV                | Pendiente  | 9          |                                                                                                             |
+| UC-30 | Importar MS Project XML           | Pendiente  | 9          |                                                                                                             |
+| UC-31 | Iniciar sesión                    | Completado | 4          | Auth.js credenciales, middleware, e2e de login                                                              |
+| UC-32 | Roles por proyecto                | Pendiente  | 10         |                                                                                                             |
+| UC-33 | Compartir por enlace              | Pendiente  | 10         |                                                                                                             |
+| UC-34 | Colaboración simultánea           | Pendiente  | 10         |                                                                                                             |
+| UC-35 | Comentarios y menciones           | Pendiente  | 10         |                                                                                                             |
+| UC-36 | Historial de cambios              | Pendiente  | 5 · 8      | `AuditLog` en Prisma y `withAudit` listos (Paso 4)                                                          |
+| UC-37 | Configuración global              | Pendiente  | 10         |                                                                                                             |
+| UC-38 | Costos                            | Engine     | 3 · 8      | `projectCosts`, conversión UF/CLP                                                                           |

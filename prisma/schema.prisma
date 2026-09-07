@@ -1,0 +1,376 @@
+// Modelo de datos de GanttPro. Fuente de verdad de nombres: docs/spec/modelo-datos.md.
+// Fechas de plan: DATE (sin hora); marcas técnicas: TIMESTAMPTZ.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Enumeraciones
+// ---------------------------------------------------------------------------------------------
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProgressWeighting {
+  DURATION
+  EFFORT
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+  ON_HOLD
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DependencyType {
+  FS
+  SS
+  FF
+  SF
+}
+
+enum ResourceType {
+  PERSON
+  TEAM
+  MATERIAL
+}
+
+enum Currency {
+  UF
+  CLP
+}
+
+enum ProjectRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  MOVE
+  RESCHEDULE
+  IMPORT
+  RESTORE
+}
+
+// ---------------------------------------------------------------------------------------------
+// Usuarios y pertenencia
+// ---------------------------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String?
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships     ProjectMember[]
+  createdProjects Project[]       @relation("ProjectCreatedBy")
+  updatedTasks    Task[]          @relation("TaskUpdatedBy")
+  auditLogs       AuditLog[]
+  comments        Comment[]
+  baselines       Baseline[]
+  shareLinks      ShareLink[]
+  settings        Setting[]
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectRole
+  createdAt DateTime    @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------------------------
+// Proyecto y calendario
+// ---------------------------------------------------------------------------------------------
+
+model Project {
+  id                String            @id @default(cuid())
+  name              String
+  description       String?
+  status            ProjectStatus     @default(ACTIVE)
+  startDate         DateTime          @db.Date
+  statusDate        DateTime?         @db.Date
+  progressWeighting ProgressWeighting @default(DURATION)
+  createdById       String
+  archivedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  createdBy    User            @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+  calendars    Calendar[]
+  tasks        Task[]
+  dependencies Dependency[]
+  resources    Resource[]
+  baselines    Baseline[]
+  members      ProjectMember[]
+  auditLogs    AuditLog[]
+  shareLinks   ShareLink[]
+
+  @@index([status])
+  @@index([createdById])
+}
+
+/// Calendario laboral. El calendario base del proyecto es el que tiene `isBase = true`
+/// (índice único parcial creado en la migración: uno por proyecto).
+model Calendar {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  isBase      Boolean  @default(false)
+  workingDays Int[]    @default([1, 2, 3, 4, 5])
+  hoursPerDay Decimal  @default(8) @db.Decimal(5, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  holidays  Holiday[]
+  resources Resource[]
+
+  @@index([projectId])
+}
+
+model Holiday {
+  id         String   @id @default(cuid())
+  calendarId String
+  date       DateTime @db.Date
+  name       String
+
+  calendar Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, date])
+}
+
+// ---------------------------------------------------------------------------------------------
+// Tareas y dependencias
+// ---------------------------------------------------------------------------------------------
+
+model Task {
+  id             String       @id @default(cuid())
+  projectId      String
+  parentId       String?
+  orderIndex     Int
+  wbsCode        String
+  name           String
+  description    String?
+  anchorDate     DateTime?    @db.Date
+  startDate      DateTime     @db.Date
+  endDate        DateTime     @db.Date
+  durationDays   Int
+  effortHours    Decimal?     @db.Decimal(10, 2)
+  progressPct    Int          @default(0)
+  status         TaskStatus   @default(NOT_STARTED)
+  priority       TaskPriority @default(MEDIUM)
+  color          String?
+  isMilestone    Boolean      @default(false)
+  isSummary      Boolean      @default(false)
+  isCritical     Boolean      @default(false)
+  totalFloatDays Int?
+  freeFloatDays  Int?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  updatedById    String?
+
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent        Task?          @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Task[]         @relation("TaskHierarchy")
+  updatedBy     User?          @relation("TaskUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  predecessors  Dependency[]   @relation("DependencySuccessor")
+  successors    Dependency[]   @relation("DependencyPredecessor")
+  assignments   Assignment[]
+  baselineTasks BaselineTask[]
+  comments      Comment[]
+
+  @@index([projectId])
+  @@index([projectId, parentId, orderIndex])
+  @@index([projectId, wbsCode])
+}
+
+model Dependency {
+  id            String         @id @default(cuid())
+  projectId     String
+  predecessorId String
+  successorId   String
+  type          DependencyType @default(FS)
+  lagDays       Int            @default(0)
+  createdAt     DateTime       @default(now())
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  predecessor Task    @relation("DependencyPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor   Task    @relation("DependencySuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+
+  @@unique([predecessorId, successorId])
+  @@index([projectId])
+  @@index([successorId])
+}
+
+// ---------------------------------------------------------------------------------------------
+// Recursos
+// ---------------------------------------------------------------------------------------------
+
+model Resource {
+  id                  String       @id @default(cuid())
+  projectId           String
+  name                String
+  type                ResourceType @default(PERSON)
+  email               String?
+  rate                Decimal      @default(0) @db.Decimal(12, 4)
+  rateCurrency        Currency     @default(UF)
+  capacityHoursPerDay Decimal      @default(8) @db.Decimal(5, 2)
+  calendarId          String?
+  color               String?
+  isActive            Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  calendar    Calendar?    @relation(fields: [calendarId], references: [id], onDelete: SetNull)
+  assignments Assignment[]
+
+  @@index([projectId])
+}
+
+model Assignment {
+  id            String   @id @default(cuid())
+  taskId        String
+  resourceId    String
+  allocationPct Int      @default(100)
+  createdAt     DateTime @default(now())
+
+  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, resourceId])
+  @@index([resourceId])
+}
+
+// ---------------------------------------------------------------------------------------------
+// Líneas base
+// ---------------------------------------------------------------------------------------------
+
+model Baseline {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User           @relation(fields: [createdById], references: [id])
+  tasks     BaselineTask[]
+
+  @@unique([projectId, name])
+}
+
+model BaselineTask {
+  id           String   @id @default(cuid())
+  baselineId   String
+  taskId       String
+  wbsCode      String
+  name         String
+  startDate    DateTime @db.Date
+  endDate      DateTime @db.Date
+  durationDays Int
+  progressPct  Int
+
+  baseline Baseline @relation(fields: [baselineId], references: [id], onDelete: Cascade)
+  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([baselineId, taskId])
+}
+
+// ---------------------------------------------------------------------------------------------
+// Auditoría, comentarios, enlaces y configuración
+// ---------------------------------------------------------------------------------------------
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  projectId   String
+  userId      String
+  entityType  String
+  entityId    String
+  action      AuditAction
+  before      Json?
+  after       Json?
+  summary     String
+  operationId String?
+  createdAt   DateTime    @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([projectId, createdAt])
+  @@index([entityType, entityId])
+  @@index([userId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  taskId     String
+  authorId   String
+  body       String
+  mentionIds String[] @default([])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([taskId, createdAt])
+}
+
+model ShareLink {
+  id          String    @id @default(cuid())
+  projectId   String
+  token       String    @unique
+  createdById String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([projectId])
+}
+
+/// Configuración global (clave/valor). Claves v1: ufValue, ufValueDate, dateFormat, displayCurrency, logoUrl.
+model Setting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+}
