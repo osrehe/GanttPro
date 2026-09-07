@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 0
-completado** (bootstrap). El código de dominio aún no existe; el siguiente paso es la especificación.
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 1
+completado** (especificación y ADRs). El código de dominio aún no existe; el siguiente paso es el engine (calendario, WBS, scheduling).
 
 Fuentes de verdad, en este orden:
 
