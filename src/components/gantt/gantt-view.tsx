@@ -19,10 +19,13 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { TaskSheet } from "@/components/table/task-sheet";
+import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { todayIso } from "@/lib/dates";
+import { exportFileName } from "@/lib/export/excel";
+import { exportGanttPng } from "@/lib/export/png";
 import type { DependencyDto, TaskDto } from "@/lib/dto";
-import { useProjectStore } from "@/stores/project-store";
+import { depthOf, useProjectStore } from "@/stores/project-store";
 import { DependencyPopover, type ArrowPopoverState } from "./dependency-popover";
 import { GanttHeader } from "./gantt-header";
 import { GanttLeftPane } from "./gantt-left-pane";
@@ -74,6 +77,7 @@ export function GanttView() {
   const [hoverTaskId, setHoverTaskId] = useState<string | null>(null);
   const [popover, setPopover] = useState<ArrowPopoverState | null>(null);
   const [viewport, setViewport] = useState({ scrollTop: 0, height: 600, width: 1200 });
+  const [exporting, setExporting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const previewRef = useRef<SVGRectElement>(null);
@@ -214,6 +218,50 @@ export function GanttView() {
     [leftWidth],
   );
 
+  // Exportación PNG del Gantt visible (UC-28): también la dispara el menú Exportar del header.
+  const exportPng = useCallback(async () => {
+    const headerSvg = scrollRef.current?.querySelector<SVGSVGElement>(
+      '[data-testid="gantt-header"]',
+    );
+    const timelineSvg = svgRef.current;
+    if (!headerSvg || !timelineSvg || rows.length === 0) {
+      toast.info("No hay nada que exportar: el Gantt está vacío");
+      return;
+    }
+    setExporting(true);
+    try {
+      await exportGanttPng(
+        {
+          headerSvg,
+          timelineSvg,
+          rows: rows.map((t) => ({
+            wbsCode: t.wbsCode,
+            name: t.name,
+            depth: depthOf(t),
+            isSummary: t.isSummary,
+            isMilestone: t.isMilestone,
+          })),
+          rowHeight: ROW_HEIGHT,
+          headerHeight: HEADER_HEIGHT,
+          leftWidth,
+          title: project?.name ?? "Gantt",
+        },
+        exportFileName(project?.name ?? "proyecto", "gantt", "png"),
+      );
+      toast.success("PNG descargado");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo exportar el PNG");
+    } finally {
+      setExporting(false);
+    }
+  }, [rows, leftWidth, project?.name]);
+
+  useEffect(() => {
+    const handler = () => void exportPng();
+    window.addEventListener("ganttpro:export-png", handler);
+    return () => window.removeEventListener("ganttpro:export-png", handler);
+  }, [exportPng]);
+
   const onArrowClick = useCallback(
     (dependency: DependencyDto, clientX: number, clientY: number) => {
       const el = scrollRef.current;
@@ -258,6 +306,8 @@ export function GanttView() {
         onColorMode={setColorMode}
         labelMode={labelMode}
         onLabelMode={setLabelMode}
+        onExportPng={() => void exportPng()}
+        exporting={exporting}
       />
       <div ref={scrollRef} className="relative flex-1 overflow-auto" data-testid="gantt-scroll">
         <div

@@ -1,19 +1,12 @@
 "use client";
 
-import {
-  Download,
-  FolderKanban,
-  LogOut,
-  Redo2,
-  Settings,
-  Undo2,
-  Upload,
-  Users,
-} from "lucide-react";
+import { FolderKanban, LogOut, Redo2, Settings, Undo2, Upload, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { ExportMenu } from "@/components/export/export-menu";
+import { ImportDialog } from "@/components/import/import-dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -41,6 +34,8 @@ export function AppShell({ user, children }: AppShellProps) {
   const projectId = match?.[1] ?? null;
   const view = match?.[2] ?? null;
   const project = useProjectStore((s) => s.project);
+  const role = useProjectStore((s) => s.role);
+  const [importOpen, setImportOpen] = useState(false);
   const historyState = useProjectStore((s) => s.historyState);
   const undo = useProjectStore((s) => s.undo);
   const redo = useProjectStore((s) => s.redo);
@@ -185,16 +180,30 @@ export function AppShell({ user, children }: AppShellProps) {
                 <Separator orientation="vertical" className="mx-1 h-6" />
               </>
             ) : null}
-            <Button variant="outline" size="sm" disabled title="Disponible en el Paso 9">
-              <Download className="size-4" />
-              Exportar
-            </Button>
-            <Button variant="outline" size="sm" disabled title="Disponible en el Paso 9">
+            <ExportMenu
+              projectId={projectId}
+              projectName={projectId ? (project?.name ?? null) : null}
+              view={view}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportOpen(true)}
+              data-testid="import-button"
+              title="Importar desde Excel, CSV o MS Project"
+            >
               <Upload className="size-4" />
               Importar
             </Button>
           </div>
         </header>
+        <ImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          projectId={projectId}
+          projectName={projectId ? (project?.name ?? null) : null}
+          canEditProject={role === "ADMIN" || role === "EDITOR"}
+        />
         <main className="min-h-0 flex-1 overflow-auto">{children}</main>
       </div>
     </div>

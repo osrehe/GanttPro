@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 8
-completado** (seguimiento, líneas base, histograma y nivelación, dashboard, auditoría). El siguiente
-paso es el Paso 9: exportación a Excel/PDF/PNG e importación Excel/CSV/MS Project.
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 9
+completado** (exportación a Excel, PDF y PNG; importación Excel/CSV y MS Project). El siguiente
+paso es el Paso 10: roles por proyecto, enlaces compartidos, colaboración, comentarios y pulido.
 
 Fuentes de verdad, en este orden:
 
@@ -77,8 +77,8 @@ Usuarios del seed: `admin@ganttpro.local` (ADMIN), `editor@ganttpro.local` (EDIT
 Next.js 15.5 (App Router, React 19) · TypeScript estricto con `noUncheckedIndexedAccess` · Tailwind v4 ·
 shadcn/ui (estilo `radix-nova`, base `radix-ui`, iconos `lucide-react`) · Prisma 6 + PostgreSQL 16 ·
 Auth.js (`next-auth@5` beta, credenciales, sesión JWT) · zod 4 · bcryptjs · Vitest 3 · Playwright ·
-Prettier con plugin de Tailwind · ESLint 9 flat config. Zustand · TanStack Query · sonner · react-markdown · Recharts. Pendientes según el plan: exceljs,
-Puppeteer.
+Prettier con plugin de Tailwind · ESLint 9 flat config. Zustand · TanStack Query · sonner · react-markdown · Recharts · exceljs · Puppeteer ·
+fast-xml-parser · pdf-parse (solo en tests).
 
 Entorno: Windows 11 + PowerShell. Todo script npm debe funcionar en PowerShell (`cross-env`, `rimraf`;
 nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
@@ -174,6 +174,24 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   `dateFormat`, `logoUrl`) y adaptador `UfProvider` en `src/lib/uf-provider.ts` (`ManualUfProvider`
   activo; `MindicadorUfProvider` preparado, sin uso en v1). Las vistas Dashboard, Líneas base y
   Auditoría son pestañas del header del proyecto.
+- **Exportación (Paso 9, `src/lib/export`)**: `excel.ts` arma el libro con exceljs (hojas Tareas,
+  Gantt, Recursos, Dependencias y Resumen; las nueve primeras columnas de Tareas son las de la
+  plantilla de importación, así que exportar e importar es un round-trip) y lo sirve
+  `GET /api/projects/:id/export/xlsx?gantt=day|week`. El PDF es
+  `GET /api/projects/:id/export/pdf?<opciones>`: `print-model.ts` valida las opciones
+  (`parsePdfOptions`/`pdfOptionsToQuery`) y pagina (`paginate`), `pdf.ts` abre con Puppeteer
+  `/print/gantt` autenticada con un token HMAC de 5 minutos (`print-token.ts`, el middleware deja
+  pasar `/print/*?token=`) y `src/components/print/print-gantt.tsx` dibuja páginas explícitas con la
+  misma geometría del engine que la vista web. El PNG (`png.ts`) se genera en el cliente
+  serializando el SVG visible con los estilos calculados en línea. Diálogos y menú en
+  `src/components/export`.
+- **Importación (Paso 9, `src/lib/import`)**: dos fases. `POST /api/import/preview` (multipart, campo
+  `file`) parsea CSV, XLSX o MSPDI hacia un `ImportedPlan` neutral y lo valida fila a fila
+  (`rows.ts`, mismos errores y avisos que verá el usuario); `POST /api/import` recibe ese plan,
+  **lo vuelve a validar** con `validatePlan` y lo escribe en una transacción con destino `new`,
+  `append` o `replace`, terminando en `rescheduleProject` (las fechas las decide el engine).
+  `GET /api/import/template` descarga la plantilla. Diálogo en `src/components/import`; fixture
+  MSPDI en `fixtures/msproject-sample.xml`.
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`
@@ -181,7 +199,7 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   llamándola con un `Request`, como en `src/app/health/route.test.ts`. Los e2e viven en `e2e/`.
 - **Rutas de Next**: `src/app`. `/health` público, `/login` con `login-form.tsx` cliente, páginas de la
   app bajo `src/app/(app)` (la raíz redirige a `/projects`), API bajo `src/app/api`, impresión PDF
-  (Paso 9) bajo `src/app/print/gantt`. Feriados de Chile por año en `src/lib/holidays/cl-AAAA.json`.
+  bajo `src/app/print/gantt`. Feriados de Chile por año en `src/lib/holidays/cl-AAAA.json`.
 - **shadcn/ui**: componentes en `src/components/ui`, helper `cn` en `src/lib/utils.ts`. Agregar con
   `npx shadcn@latest add <componente>`. Fuentes como variables CSS `--font-sans` y `--font-geist-mono`.
 

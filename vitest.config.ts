@@ -34,6 +34,8 @@ export default defineConfig({
           include: ["src/**/*.integration.test.ts"],
           environment: "node",
           setupFiles: ["./src/test/integration-setup.ts"],
+          // Los archivos comparten la base ganttpro_test: se ejecutan en serie, en un solo proceso.
+          poolOptions: { forks: { singleFork: true } },
           testTimeout: 30_000,
           hookTimeout: 30_000,
         },

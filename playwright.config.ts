@@ -14,7 +14,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 2 : undefined,
+  // Local: pocos workers para no saturar el servidor de desarrollo (compila bajo demanda).
+  workers: isCI ? 2 : 3,
   reporter: isCI ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 60_000,
   expect: { timeout: 15_000 },

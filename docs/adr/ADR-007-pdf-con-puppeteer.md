@@ -38,6 +38,21 @@ preferCSSPageSize: true })`. El resultado se envía como `application/pdf`.
    inactividad.
 5. La misma ruta sirve para la exportación **PNG** de una sola página cuando el usuario elige "imagen".
 
+## Ajustes al implementarla (Paso 9)
+
+- El endpoint es **`GET /api/projects/:id/export/pdf`** con las opciones en la query string (las
+  serializa `pdfOptionsToQuery`), no un POST: así el navegador puede descargar el archivo con el
+  mismo mecanismo que el Excel y la URL es reproducible.
+- La ruta de impresión se autoriza con un **token HMAC-SHA256 de 5 minutos** firmado con
+  `AUTH_SECRET` (`src/lib/export/print-token.ts`) en vez de una cookie interna: Puppeteer no
+  comparte la sesión del usuario y el token viaja en la query. Sin token, `/print/gantt` exige
+  sesión y pertenencia al proyecto; en cualquier otro caso responde 404.
+- No se mantiene un navegador abierto entre exportaciones: cada llamada lanza y cierra Chromium. Con
+  el proyecto de ejemplo (46 tareas) el PDF A4 horizontal de 9 páginas tarda unos 6 s en desarrollo.
+  Reutilizar el navegador queda como optimización si el tiempo molesta en producción.
+- La exportación **PNG no usa esta ruta**: se genera en el cliente serializando el SVG visible
+  (`src/lib/export/png.ts`), que es instantáneo y no ocupa el servidor.
+
 ## Consecuencias
 
 Positivas:

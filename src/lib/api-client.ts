@@ -12,6 +12,8 @@ import type {
   TaskDto,
   TaskMutationResult,
 } from "@/lib/dto";
+import type { ImportRequestInput } from "@/lib/import/schema";
+import type { ImportPreview, ImportResult } from "@/lib/import/types";
 import type { SettingsDto } from "@/lib/services/settings";
 import type {
   BulkTaskUpdateInput,
@@ -48,10 +50,11 @@ export class ApiClientError extends Error {
 }
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   const response = await fetch(url, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: body === undefined || isForm ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     credentials: "same-origin",
   });
   const json = (await response.json().catch(() => null)) as { data?: T } | ApiErrorBody | null;
@@ -146,6 +149,23 @@ export const api = {
   settings: {
     get: () => get<SettingsDto>("/api/settings"),
     update: (input: UpdateSettingsInput) => patch<SettingsDto>("/api/settings", input),
+  },
+  export: {
+    /** Descarga directa (GET) del libro Excel; `gantt` controla la granularidad de la hoja Gantt. */
+    xlsxUrl: (projectId: string, gantt: "day" | "week" = "day") =>
+      `/api/projects/${projectId}/export/xlsx?gantt=${gantt}`,
+    /** Descarga directa (GET) del PDF con las opciones serializadas por `pdfOptionsToQuery`. */
+    pdfUrl: (projectId: string, query: URLSearchParams) =>
+      `/api/projects/${projectId}/export/pdf?${query.toString()}`,
+  },
+  import: {
+    templateUrl: "/api/import/template",
+    preview: (file: File) => {
+      const form = new FormData();
+      form.append("file", file, file.name);
+      return post<ImportPreview>("/api/import/preview", form);
+    },
+    run: (input: ImportRequestInput) => post<ImportResult>("/api/import", input),
   },
   baselines: {
     list: (projectId: string) => get<BaselineDto[]>(`/api/projects/${projectId}/baselines`),

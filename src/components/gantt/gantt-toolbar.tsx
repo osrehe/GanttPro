@@ -1,7 +1,7 @@
 "use client";
 
 import type { TimeScale } from "@ganttpro/engine";
-import { Maximize2, ZoomIn, ZoomOut } from "lucide-react";
+import { ImageDown, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -35,6 +35,8 @@ interface Props {
   onColorMode(mode: ColorMode): void;
   labelMode: LabelMode;
   onLabelMode(mode: LabelMode): void;
+  onExportPng(): void;
+  exporting: boolean;
 }
 
 export function GanttToolbar(props: Props) {
@@ -135,6 +137,18 @@ export function GanttToolbar(props: Props) {
           </SelectContent>
         </Select>
       </label>
+      <span className="bg-border mx-1 h-6 w-px" />
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={props.onExportPng}
+        disabled={props.exporting}
+        data-testid="export-png"
+        title="Descargar el Gantt visible como imagen PNG"
+      >
+        <ImageDown className="size-4" />
+        PNG
+      </Button>
     </div>
   );
 }

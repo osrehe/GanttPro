@@ -18,6 +18,9 @@ export const authConfig = {
       const isLoggedIn = Boolean(auth?.user);
       const isPublic = PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/api/auth");
 
+      // Impresión PDF: Puppeteer abre /print/* con un token firmado que verifica la propia página.
+      if (pathname.startsWith("/print/") && request.nextUrl.searchParams.has("token")) return true;
+
       if (isPublic) {
         if (isLoggedIn && pathname === "/login") {
           return Response.redirect(new URL("/", request.nextUrl));

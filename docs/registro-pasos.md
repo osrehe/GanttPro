@@ -11,24 +11,25 @@ se anotan aparte cuando se usan.
 **Cómo se mide el tiempo.** Hora de inicio: primer mensaje del paso. Hora de fin: commit de
 cierre. Zona horaria: America/Santiago. El commit de cada paso se obtiene con `git rev-parse <tag>`.
 
-| Paso | Descripción                                                             | Inicio           | Fin              | Duración           | Tokens aprox. | Subagentes | Tag       |
-| ---- | ----------------------------------------------------------------------- | ---------------- | ---------------- | ------------------ | ------------- | ---------- | --------- |
-| —    | Análisis inicial y CLAUDE.md v0                                         | 2026-09-06 22:24 | 2026-09-06 22:35 | 11 min             | ~58 k         | 0          | —         |
-| —    | Revisión del plan (v1 → v2)                                             | 2026-09-06 22:35 | 2026-09-06 22:57 | 22 min             | ~19 k         | 0          | `plan-v2` |
-| 0    | Bootstrap                                                               | 2026-09-06 22:57 | 2026-09-06 23:12 | 15 min             | ~96 k         | 0          | `paso-0`  |
-| 1    | Especificación y ADRs                                                   | 2026-09-06 23:39 | 2026-09-06 23:52 | 13 min             | ~40 k         | 2 (~465 k) | `paso-1`  |
-| 2    | Engine: calendario, WBS, scheduling y ciclos                            | 2026-09-06 23:57 | 2026-09-07 00:10 | 13 min             | ~73 k         | 0          | `paso-2`  |
-| 3    | Engine: CPM, recursos, línea base y layout                              | 2026-09-07 00:12 | 2026-09-07 00:22 | 10 min             | ~65 k         | 0          | `paso-3`  |
-| 4    | Datos (Prisma), autenticación mínima y seeds                            | 2026-09-07 00:23 | 2026-09-07 00:40 | 17 min             | ~100 k        | 0          | `paso-4`  |
-| 5    | API (Route Handlers, servicios, tests de integración)                   | 2026-09-07 00:41 | 2026-09-07 09:01 | 30 min (con pausa) | ~90 k         | 0          | `paso-5`  |
-| 6    | UI base (shell, proyectos, tabla WBS, undo/redo, recursos)              | 2026-09-07 09:01 | 2026-09-07 09:32 | 31 min             | ~150 k        | 0          | `paso-6`  |
-| 7    | Gantt interactivo (SVG, arrastres, dependencias, rendimiento)           | 2026-09-07 09:32 | 2026-09-07 10:00 | 28 min             | ~115 k        | 0          | `paso-7`  |
-| 8    | Seguimiento, líneas base, histograma y nivelación, dashboard, auditoría | 2026-09-07 10:02 | 2026-09-07 14:01 | 239 min            | ~235 k        | 0          | `paso-8`  |
+| Paso | Descripción                                                             | Inicio           | Fin              | Duración            | Tokens aprox. | Subagentes | Tag       |
+| ---- | ----------------------------------------------------------------------- | ---------------- | ---------------- | ------------------- | ------------- | ---------- | --------- |
+| —    | Análisis inicial y CLAUDE.md v0                                         | 2026-09-06 22:24 | 2026-09-06 22:35 | 11 min              | ~58 k         | 0          | —         |
+| —    | Revisión del plan (v1 → v2)                                             | 2026-09-06 22:35 | 2026-09-06 22:57 | 22 min              | ~19 k         | 0          | `plan-v2` |
+| 0    | Bootstrap                                                               | 2026-09-06 22:57 | 2026-09-06 23:12 | 15 min              | ~96 k         | 0          | `paso-0`  |
+| 1    | Especificación y ADRs                                                   | 2026-09-06 23:39 | 2026-09-06 23:52 | 13 min              | ~40 k         | 2 (~465 k) | `paso-1`  |
+| 2    | Engine: calendario, WBS, scheduling y ciclos                            | 2026-09-06 23:57 | 2026-09-07 00:10 | 13 min              | ~73 k         | 0          | `paso-2`  |
+| 3    | Engine: CPM, recursos, línea base y layout                              | 2026-09-07 00:12 | 2026-09-07 00:22 | 10 min              | ~65 k         | 0          | `paso-3`  |
+| 4    | Datos (Prisma), autenticación mínima y seeds                            | 2026-09-07 00:23 | 2026-09-07 00:40 | 17 min              | ~100 k        | 0          | `paso-4`  |
+| 5    | API (Route Handlers, servicios, tests de integración)                   | 2026-09-07 00:41 | 2026-09-07 09:01 | 30 min (con pausa)  | ~90 k         | 0          | `paso-5`  |
+| 6    | UI base (shell, proyectos, tabla WBS, undo/redo, recursos)              | 2026-09-07 09:01 | 2026-09-07 09:32 | 31 min              | ~150 k        | 0          | `paso-6`  |
+| 7    | Gantt interactivo (SVG, arrastres, dependencias, rendimiento)           | 2026-09-07 09:32 | 2026-09-07 10:00 | 28 min              | ~115 k        | 0          | `paso-7`  |
+| 8    | Seguimiento, líneas base, histograma y nivelación, dashboard, auditoría | 2026-09-07 10:02 | 2026-09-07 14:01 | 239 min (con pausa) | ~235 k        | 0          | `paso-8`  |
+| 9    | Exportación (Excel, PDF, PNG) e importación (Excel/CSV, MS Project)     | 2026-09-07 14:05 | 2026-09-07 14:50 | 45 min              | ~295 k        | 2 (~534 k) | `paso-9`  |
 
 ## Totales
 
 | Concepto          | Valor                                                  |
 | ----------------- | ------------------------------------------------------ |
-| Tiempo acumulado  | 429 min                                                |
-| Tokens acumulados | ~1.041 k en la sesión principal + ~465 k en subagentes |
-| Pasos completados | 9 de 12                                                |
+| Tiempo acumulado  | 474 min                                                |
+| Tokens acumulados | ~1.336 k en la sesión principal + ~999 k en subagentes |
+| Pasos completados | 10 de 12                                               |

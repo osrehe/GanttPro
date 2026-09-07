@@ -151,13 +151,27 @@ Puntos clave del flujo:
 
 ## Flujo: exportar a PDF
 
-1. El usuario elige opciones en el diálogo (orientación, tamaño, rango, escala, columnas, toggles).
-2. `POST /api/projects/:id/export/pdf` valida las opciones con Zod y `requireProject("VIEWER")`.
-3. El handler crea una cookie interna de un solo uso y abre con Puppeteer
-   `/print/gantt?projectId=…&opciones`, que renderiza páginas explícitas usando el mismo
-   `layout` y los mismos componentes SVG de la vista web.
+1. El usuario elige opciones en el diálogo (orientación, tamaño, rango, escala, columnas, toggles);
+   `pdfOptionsToQuery` las serializa en la URL.
+2. `GET /api/projects/:id/export/pdf?…` valida las opciones con Zod (`parsePdfOptions`) y
+   `requireProjectAccess("VIEWER")`.
+3. El handler firma un token HMAC de 5 minutos y abre con Puppeteer
+   `/print/gantt?projectId=…&token=…&opciones`, que pagina el proyecto con `paginate` y renderiza
+   páginas explícitas usando el mismo modelo de layout y la misma geometría SVG de la vista web.
 4. `page.pdf()` devuelve el PDF vectorial; el handler lo envía como `application/pdf`
    ([ADR-007](../adr/ADR-007-pdf-con-puppeteer.md)).
+
+## Flujo: importar un plan
+
+1. El usuario elige un archivo en el diálogo Importar; `POST /api/import/preview` (multipart) lo
+   parsea según su extensión (`csv.ts`, `excel.ts` o `mspdi.ts`) hacia un `ImportedPlan` neutral y
+   lo valida fila a fila sin tocar la base de datos.
+2. La previsualización muestra las tareas, los conteos y los errores y avisos por fila. Con errores,
+   el botón Importar queda deshabilitado.
+3. Al confirmar, `POST /api/import` recibe el plan en JSON, lo **vuelve a validar** con la misma
+   función y, en una transacción, crea el proyecto (o agrega/reemplaza en uno existente), sus
+   tareas, dependencias, recursos y asignaciones, y termina con `rescheduleProject`: las fechas
+   finales las decide el engine ([ADR-011](../adr/ADR-011-importacion-con-previsualizacion.md)).
 
 ## Estructura de carpetas objetivo
 
@@ -166,7 +180,7 @@ Puntos clave del flujo:
 ├─ CLAUDE.md · README.md · prompt-claude-code-gantt.md
 ├─ docs/
 │  ├─ spec/{funcional,modelo-datos,arquitectura,plan-de-pasos}.md
-│  ├─ adr/ADR-001…010-*.md
+│  ├─ adr/ADR-001…011-*.md
 │  ├─ qa/{checklist.md,evidencia/}
 │  ├─ registro-pasos.md · manual-usuario.md · backlog.md
 ├─ packages/engine/                 # @ganttpro/engine, TypeScript puro
@@ -176,7 +190,7 @@ Puntos clave del flujo:
 ├─ src/
 │  ├─ app/(app)/…                   # proyectos, tabla, gantt, recursos, configuración
 │  ├─ app/api/…                     # Route Handlers
-│  ├─ app/print/gantt/              # ruta de impresión (PDF/PNG)
+│  ├─ app/print/gantt/              # ruta de impresión que Puppeteer convierte en PDF
 │  ├─ app/login · app/share/[token] · app/health
 │  ├─ components/{ui,gantt,table,resources,layout,…}
 │  ├─ lib/{schemas,db,auth,audit,services,api-client,export,import,holidays}
@@ -191,14 +205,14 @@ Puntos clave del flujo:
 
 ## Capas y reglas de dependencia
 
-| Capa               | Puede importar de                                   | No puede importar de                |
-| ------------------ | --------------------------------------------------- | ----------------------------------- |
-| `packages/engine`  | nada externo                                        | `react`, `next`, `@prisma/*`, `@/*` |
-| `src/lib/schemas`  | `zod`, tipos del engine                             | Prisma, React                       |
-| `src/lib/services` | engine, Prisma, `audit`, `schemas`                  | React, componentes                  |
-| `src/app/api`      | `services`, `schemas`, `auth`                       | componentes, stores                 |
-| `src/stores`       | engine, `api-client`, `schemas`                     | Prisma, `services`                  |
-| `src/components`   | `stores`, `schemas`, engine (`layout`, `dates`), UI | Prisma, `services`, `api-client`    |
+| Capa               | Puede importar de                                                 | No puede importar de                |
+| ------------------ | ----------------------------------------------------------------- | ----------------------------------- |
+| `packages/engine`  | nada externo                                                      | `react`, `next`, `@prisma/*`, `@/*` |
+| `src/lib/schemas`  | `zod`, tipos del engine                                           | Prisma, React                       |
+| `src/lib/services` | engine, Prisma, `audit`, `schemas`                                | React, componentes                  |
+| `src/app/api`      | `services`, `schemas`, `auth`                                     | componentes, stores                 |
+| `src/stores`       | engine, `api-client`, `schemas`                                   | Prisma, `services`                  |
+| `src/components`   | `stores`, `schemas`, engine (`layout`, `dates`), `api-client`, UI | Prisma, `services`                  |
 
 La primera fila la impone ESLint; las demás se revisan en código y se añaden como reglas
 `no-restricted-imports` por carpeta cuando existan (Paso 5 y 6).
@@ -238,6 +252,7 @@ La primera fila la impone ESLint; las demás se revisan en código y se añaden 
 | [ADR-008](../adr/ADR-008-store-unico-y-undo-redo.md)                     | Store Zustand único con comandos invertibles; optimista en cliente, verdad en servidor            |
 | [ADR-009](../adr/ADR-009-diseno-de-api.md)                               | Route Handlers + Zod compartido + envolvente `{ data } \| { error }`; `affected` en una respuesta |
 | [ADR-010](../adr/ADR-010-colaboracion-por-polling.md)                    | Polling de 2 s sobre `AuditLog`; última escritura gana; SSE reservado para v2                     |
+| [ADR-011](../adr/ADR-011-importacion-con-previsualizacion.md)            | Importar en dos fases con validación por fila; un solo plan intermedio para CSV, Excel y MSPDI    |
 
 ## Riesgos y mitigaciones
 

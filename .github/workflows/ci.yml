@@ -72,6 +72,8 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npm run db:seed
       - run: npx playwright install --with-deps chromium
+      # Chromium para Puppeteer (exportación a PDF); npm ci puede no ejecutar el script de descarga.
+      - run: npx puppeteer browsers install chrome
       - run: npm run build
       - run: npm run test:e2e
       - run: npm run db:seed:perf
