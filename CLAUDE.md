@@ -2,103 +2,89 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Estado actual del repositorio
+## Qué es este proyecto
 
-**Aún no hay código.** El repositorio contiene únicamente `prompt-claude-code-gantt.md`, la especificación
-por pasos (Paso 0 a Paso 8) para construir **GanttPro**, una aplicación web de planificación de proyectos
-con cartas Gantt. Ese archivo es la fuente de verdad del alcance y del orden de trabajo; léelo antes de
-iniciar cualquier paso. No es todavía un repositorio git.
+**GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
+dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 0
+completado** (bootstrap). El código de dominio aún no existe; el siguiente paso es la especificación.
 
-Cuando se complete el Paso 0, actualiza este archivo con los comandos reales del `package.json` y la
-estructura de carpetas que efectivamente exista.
+Fuentes de verdad, en este orden:
+
+1. `prompt-claude-code-gantt.md` — prompts detallados de cada paso y tabla "Decisiones ya tomadas".
+2. `docs/spec/plan-de-pasos.md` — resumen del plan, criterios de aceptación y estado por paso.
+3. `docs/spec/*.md` y `docs/adr/*.md` (desde el Paso 1) — nombres de entidades y campos, ADRs.
 
 ## Flujo de trabajo por pasos (regla central)
 
-El proyecto se construye en pasos numerados definidos en `prompt-claude-code-gantt.md`.
-**Un paso = un commit cerrado con tests.** En cada paso:
+**Un paso = un commit cerrado con tests + tag `paso-N`.** En cada paso:
 
 1. Antes de escribir código, describe brevemente el enfoque y la lista de archivos a crear o modificar.
 2. Implementa completo, sin TODOs ni placeholders.
-3. Ejecuta lint, typecheck y tests; corrige hasta que todo pase.
+3. Ejecuta `npm run lint`, `npm run typecheck` y `npm run test`; corrige hasta que todo pase.
 4. Termina con un resumen: qué se hizo, cómo probarlo manualmente y qué falta para el siguiente paso.
 5. No avances al siguiente paso hasta que el usuario lo apruebe explícitamente. No mezcles pasos.
 
-Cada paso tiene criterios de aceptación en la spec; el paso no está cerrado hasta cumplirlos todos.
+No reabras las decisiones de la tabla "Decisiones ya tomadas" sin consultar al usuario.
 
-Resumen de los pasos:
-
-| Paso | Contenido |
-|---|---|
-| 0 | Contexto, CLAUDE.md, esqueleto Next.js con `/health`, ESLint/Prettier/Husky, docker-compose Postgres |
-| 1 | Spec-first: `/docs/spec/{funcional,modelo-datos,arquitectura,plan-de-pasos}.md` |
-| 2 | Prisma schema, motor de planificación en `/packages/engine`, API Route Handlers, seed |
-| 3 | UI base: proyectos, tabla WBS editable (TanStack Table), recursos, undo/redo |
-| 4 | Gantt interactivo (drag & drop, dependencias, ruta crítica, virtualización 1.000 tareas) |
-| 5 | Avance, líneas base, histograma de recursos, nivelación, dashboard, auditoría |
-| 6 | Exportación Excel/PDF/PNG e importación Excel/CSV/MS Project XML |
-| 7 | Auth.js, roles, colaboración, comentarios, modo oscuro, accesibilidad |
-| 8 | QA final, Lighthouse, seguridad, README, manual de usuario, tag v1.0.0 |
-
-## Stack (no cambiar sin consultar al usuario)
-
-- Next.js 15 (App Router) + TypeScript estricto + Tailwind + shadcn/ui
-- Prisma ORM + PostgreSQL (dev con Docker Compose; fallback SQLite para desarrollo rápido)
-- Zustand para el estado del Gantt; TanStack Query para datos remotos; TanStack Table para la grilla
-- Zod para validación en cliente y servidor
-- Vitest (unit e integración) + Playwright (e2e)
-- Exportación: exceljs (Excel), @react-pdf/renderer o Puppeteer (PDF, debe ser vectorial)
-- Recharts para gráficos (curva S, histograma)
-- Auth.js para autenticación (Paso 7)
-
-## Entorno de desarrollo
-
-Windows 11 + VS Code + PowerShell. **Todos los scripts npm deben funcionar en PowerShell**: usa
-`cross-env`, `rimraf` y similares; no dependas de sintaxis bash en `package.json`.
-
-## Convenciones de idioma
-
-- **UI, mensajes, comentarios, documentación y commits: español (Chile).**
-- **Nombres de código (variables, funciones, tablas, columnas, rutas de API, archivos de código): inglés.**
-- Fechas en formato `dd-mm-yyyy` en la UI y exportaciones. Moneda en UF o CLP.
-
-## Comandos previstos por la spec
-
-Estos scripts deben existir una vez completado el Paso 0 (y `db:*` desde el Paso 2). Verifica contra
-`package.json` antes de usarlos y actualiza esta sección si cambian.
+## Comandos
 
 ```
-npm run dev          # levanta la app; /health debe responder OK
-npm run build        # build de producción (sin warnings en el Paso 8)
-npm run lint
-npm run typecheck
-npm run test         # Vitest (unit + integración)
-npm run test:e2e     # Playwright
-npm run db:migrate   # Prisma migrate
-npm run db:seed      # proyecto de ejemplo (~40 tareas, 6 recursos, feriados chilenos 2026)
+npm run dev            # Next.js con Turbopack en http://localhost:3000 (GET /health → { status: "ok" })
+npm run build          # build de producción
+npm run lint           # ESLint (incluye la regla de frontera del engine)
+npm run format         # Prettier; format:check solo verifica (lo usa CI)
+npm run typecheck      # tsc para la app (tsconfig raíz) y para packages/engine
+npm run test           # Vitest, proyectos "engine" y "web", con TZ=UTC
+npm run test:watch
+npm run test:coverage  # cobertura del engine con umbral 90 % (líneas, ramas, funciones)
+npm run clean
+docker compose up -d   # Postgres 16: BD ganttpro y ganttpro_test (usuario/clave ganttpro). Puerto host: POSTGRES_PORT en .env
 ```
 
-Husky pre-commit ejecuta lint + typecheck.
+Ejecutar un solo archivo de tests: `npx cross-env TZ=UTC vitest run packages/engine/tests/dates.test.ts`.
+Filtrar por nombre: `npx cross-env TZ=UTC vitest run -t "addDays"`. Ejecutar solo un proyecto:
+`npx cross-env TZ=UTC vitest run --project engine`.
 
-## Arquitectura prevista
+Husky ejecuta en pre-commit `lint-staged` (eslint --fix + prettier sobre lo staged) y `npm run typecheck`.
+CI (`.github/workflows/ci.yml`) corre lint, format:check, typecheck y test en Node 22.
 
-Decisiones fijadas por la spec que condicionan dónde va cada cosa:
+Scripts `db:*`, `test:e2e` y demás se agregan en los pasos que los necesitan (4 en adelante).
 
-- **`/packages/engine` es TypeScript puro, sin React ni Prisma.** Contiene el motor de planificación:
-  cálculo de días hábiles según calendario, `scheduleProject` (restricciones FS/SS/FF/SF con lag,
-  propagación a sucesoras, rollup de tareas resumen), `criticalPath` (forward/backward pass, holgura
-  total y libre), `detectCycle` y `resourceLoad`. Debe poder ejecutarse tanto en servidor como en
-  cliente y tener cobertura de tests ≥ 90%. Nunca importes UI ni DB desde el engine.
-- **La API vive en Route Handlers bajo `/app/api`** con validación Zod y respuestas tipadas.
-  `PATCH /tasks/:id` aplica el cambio y devuelve en una sola respuesta todas las tareas afectadas por
-  el reschedule; la UI resalta esas filas. Toda mutación escribe en `AuditLog` (quién, qué, antes/después).
-- **Un único store Zustand** gobierna tabla y Gantt, con historial undo/redo. Todas las mutaciones
-  (edición inline, drag & drop en el Gantt, panel de detalle) pasan por ese store, para que tabla y
-  Gantt nunca se desincronicen.
-- **Jerarquía WBS ilimitada** mediante `Task.parentId` + `orderIndex` + `wbsCode`. Reindentar una tarea
-  recalcula los códigos WBS de todo el proyecto.
-- **La spec en `/docs/spec` (Paso 1) es la fuente de verdad** para nombres de entidades y campos;
-  el schema Prisma, la API y la UI deben usar exactamente esos nombres.
-- La estrategia de renderizado del Gantt (SVG vs. Canvas) y la de PDF se deciden y justifican como
-  ADR en `/docs/spec/arquitectura.md` durante el Paso 1; respétalas en los pasos posteriores.
-- Valor UF: se ingresa manualmente en Configuración, dejando un adaptador preparado para una API
-  externa (mindicador.cl) sin implementarlo en v1.
+## Stack
+
+Next.js 15.5 (App Router, React 19) · TypeScript estricto con `noUncheckedIndexedAccess` · Tailwind v4 ·
+shadcn/ui (estilo `radix-nova`, base `radix-ui`, iconos `lucide-react`) · Vitest 3 · Prettier con
+plugin de Tailwind · ESLint 9 flat config. Pendientes de incorporar según el plan: Prisma + Postgres,
+Auth.js, Zustand, TanStack Query/Table, Zod, Playwright, exceljs, Puppeteer, Recharts.
+
+Entorno: Windows 11 + PowerShell. Todo script npm debe funcionar en PowerShell (`cross-env`, `rimraf`;
+nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
+
+## Arquitectura
+
+- **`packages/engine` (`@ganttpro/engine`) es TypeScript puro.** No puede importar React, Next, Prisma
+  ni `@/*`; ESLint lo bloquea (`no-restricted-imports`) y su `tsconfig` no incluye la lib DOM. Next lo
+  consume desde el código fuente vía `transpilePackages`; Vitest y `tsc` lo resuelven con el alias
+  `@ganttpro/engine`. Aquí vivirán calendario, scheduling, WBS, CPM, carga de recursos, varianza y el
+  modelo de layout del Gantt. Objetivo de cobertura ≥ 90 %.
+- **Fechas de plan son date-only** (`YYYY-MM-DD`). Usa las utilidades de `packages/engine/src/dates.ts`
+  (`addDays`, `diffDays`, `dayOfWeek`, `toEpochDay`…). Nunca `new Date()` local ni librerías de fechas
+  para aritmética de plan. Los tests corren con `TZ=UTC` para detectar dependencias de zona horaria.
+- **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`
+  (tests `src/**/*.test.ts(x)`, alias `@` y `@ganttpro/engine`). Los Route Handlers se prueban
+  importando la función exportada (`GET`, `PATCH`…) y llamándola directamente, como en
+  `src/app/health/route.test.ts`.
+- **Rutas de Next**: `src/app`. `/health` es un Route Handler público. Las páginas de la app irán bajo
+  `src/app/(app)`, la API bajo `src/app/api`, la ruta de impresión PDF bajo `src/app/print/gantt`.
+- **shadcn/ui**: componentes en `src/components/ui`, helper `cn` en `src/lib/utils.ts`. Agregar
+  componentes con `npx shadcn@latest add <componente>`. Las fuentes se exponen como variables CSS
+  `--font-sans` y `--font-geist-mono` desde `src/app/layout.tsx`; `globals.css` las consume.
+
+## Convenciones
+
+- **UI, mensajes de error, comentarios, documentación y commits en español (Chile).** Identificadores
+  (variables, funciones, tablas, columnas, rutas de API, nombres de archivo de código) en inglés.
+- Mensajes de error del engine descriptivos y en español (ver `assertIsoDate`).
+- Prettier: comillas dobles, punto y coma, `printWidth` 100, `trailingComma: all`.
+- Commits: `tipo: descripción en español` (`feat`, `fix`, `docs`, `test`, `chore`, `refactor`).

@@ -8,23 +8,23 @@
 
 ## Decisiones ya tomadas (no reabrir sin consultar)
 
-| Tema | Decisión |
-|---|---|
-| Base de datos | PostgreSQL 16 en Docker, único proveedor para dev, test y prod. Sin fallback SQLite. |
-| Despliegue | Docker self-hosted / VPS (proceso Node persistente). |
-| Autenticación | Login mínimo (Auth.js credenciales + admin en seed) desde el Paso 4. Roles por proyecto, Google y enlaces compartidos en el Paso 10. |
-| Layout del repo | Next.js en la raíz + `packages/engine` como workspace npm, consumido vía `transpilePackages`. El engine no importa React, Next ni Prisma (regla ESLint). |
-| Fechas | Date-only. `@db.Date` en Prisma; `YYYY-MM-DD` en engine y API. Índice precomputado de días hábiles por calendario. |
-| Planificación | Todas las tareas ASAP. Cada tarea hoja tiene `anchorDate` (intención del usuario) y `startDate`/`endDate` calculados. Inicio = max(ancla, derivado de predecesoras). Arrastrar actualiza el ancla; quitar dependencia vuelve al ancla. |
-| Esfuerzo y costo | Duración fija en días hábiles; esfuerzo informativo. Horas asignadas = duración × horas/día × % dedicación. Costo = horas × tarifa UF. |
-| Resúmenes e hitos | Resumen: fechas y avance derivados, no editables; avance ponderado por duración (default) o esfuerzo. Hito: duración 0. Dependencias hacia/desde resúmenes **no permitidas** en v1. |
-| Render del Gantt | SVG + React con virtualización vertical y un modelo de layout puro compartido con PNG y PDF. |
-| PDF | Puppeteer contra ruta interna `/print/gantt` con páginas explícitas. Texto vectorial. Chromium en la imagen Docker. |
-| Undo/redo | Store Zustand único con patrón command; engine en cliente para preview optimista, servidor como fuente de verdad; inverso persistido vía endpoint bulk. |
-| API | Route Handlers, Zod compartido en `src/lib/schemas`, envolvente `{ data } \| { error: { code, message, details } }`, códigos `VALIDATION`, `NOT_FOUND`, `FORBIDDEN`, `CYCLE`, `CONFLICT`. Tests de integración invocan los handlers directamente contra BD `ganttpro_test`. |
-| Colaboración | Polling TanStack Query 2 s contra `GET /api/projects/:id/changes?since=`. SSE queda para v2. |
-| Idioma | Español (Chile) en UI, docs, comentarios y commits. Identificadores en inglés. Sin framework i18n. Feriados de Chile como JSON estático por año. |
-| Git | Un paso = un commit + tag `paso-N`. CI en GitHub Actions. |
+| Tema              | Decisión                                                                                                                                                                                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Base de datos     | PostgreSQL 16 en Docker, único proveedor para dev, test y prod. Sin fallback SQLite.                                                                                                                                                                                        |
+| Despliegue        | Docker self-hosted / VPS (proceso Node persistente).                                                                                                                                                                                                                        |
+| Autenticación     | Login mínimo (Auth.js credenciales + admin en seed) desde el Paso 4. Roles por proyecto, Google y enlaces compartidos en el Paso 10.                                                                                                                                        |
+| Layout del repo   | Next.js en la raíz + `packages/engine` como workspace npm, consumido vía `transpilePackages`. El engine no importa React, Next ni Prisma (regla ESLint).                                                                                                                    |
+| Fechas            | Date-only. `@db.Date` en Prisma; `YYYY-MM-DD` en engine y API. Índice precomputado de días hábiles por calendario.                                                                                                                                                          |
+| Planificación     | Todas las tareas ASAP. Cada tarea hoja tiene `anchorDate` (intención del usuario) y `startDate`/`endDate` calculados. Inicio = max(ancla, derivado de predecesoras). Arrastrar actualiza el ancla; quitar dependencia vuelve al ancla.                                      |
+| Esfuerzo y costo  | Duración fija en días hábiles; esfuerzo informativo. Horas asignadas = duración × horas/día × % dedicación. Costo = horas × tarifa UF.                                                                                                                                      |
+| Resúmenes e hitos | Resumen: fechas y avance derivados, no editables; avance ponderado por duración (default) o esfuerzo. Hito: duración 0. Dependencias hacia/desde resúmenes **no permitidas** en v1.                                                                                         |
+| Render del Gantt  | SVG + React con virtualización vertical y un modelo de layout puro compartido con PNG y PDF.                                                                                                                                                                                |
+| PDF               | Puppeteer contra ruta interna `/print/gantt` con páginas explícitas. Texto vectorial. Chromium en la imagen Docker.                                                                                                                                                         |
+| Undo/redo         | Store Zustand único con patrón command; engine en cliente para preview optimista, servidor como fuente de verdad; inverso persistido vía endpoint bulk.                                                                                                                     |
+| API               | Route Handlers, Zod compartido en `src/lib/schemas`, envolvente `{ data } \| { error: { code, message, details } }`, códigos `VALIDATION`, `NOT_FOUND`, `FORBIDDEN`, `CYCLE`, `CONFLICT`. Tests de integración invocan los handlers directamente contra BD `ganttpro_test`. |
+| Colaboración      | Polling TanStack Query 2 s contra `GET /api/projects/:id/changes?since=`. SSE queda para v2.                                                                                                                                                                                |
+| Idioma            | Español (Chile) en UI, docs, comentarios y commits. Identificadores en inglés. Sin framework i18n. Feriados de Chile como JSON estático por año.                                                                                                                            |
+| Git               | Un paso = un commit + tag `paso-N`. CI en GitHub Actions.                                                                                                                                                                                                                   |
 
 ---
 
@@ -294,13 +294,13 @@ Criterios de aceptación:
 
 ## Extensiones sugeridas para una v2 (fuera de alcance)
 
-| Funcionalidad | Valor |
-|---|---|
-| Valor UF diario desde API (mindicador.cl) | Costos siempre actualizados |
-| Portafolio multi-proyecto con recursos compartidos | Gestión de capacidad completa |
-| SSE en lugar de polling | Colaboración más reactiva |
-| Sincronización con Jira / Azure DevOps / GitHub Issues | Une planificación con ejecución |
-| Plantillas de proyecto | Arranque en minutos |
-| Asistente IA: WBS desde descripción, estimación, riesgos | Diferenciador |
-| App móvil de solo lectura (Expo) | Seguimiento desde terreno |
-| Integración con Google Calendar / Outlook para hitos | Visibilidad del equipo |
+| Funcionalidad                                            | Valor                           |
+| -------------------------------------------------------- | ------------------------------- |
+| Valor UF diario desde API (mindicador.cl)                | Costos siempre actualizados     |
+| Portafolio multi-proyecto con recursos compartidos       | Gestión de capacidad completa   |
+| SSE en lugar de polling                                  | Colaboración más reactiva       |
+| Sincronización con Jira / Azure DevOps / GitHub Issues   | Une planificación con ejecución |
+| Plantillas de proyecto                                   | Arranque en minutos             |
+| Asistente IA: WBS desde descripción, estimación, riesgos | Diferenciador                   |
+| App móvil de solo lectura (Expo)                         | Seguimiento desde terreno       |
+| Integración con Google Calendar / Outlook para hitos     | Visibilidad del equipo          |

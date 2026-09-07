@@ -1,0 +1,36 @@
+# dependencias
+/node_modules
+/packages/*/node_modules
+
+# testing
+/coverage
+/packages/*/coverage
+/test-results
+/playwright-report
+/blob-report
+
+# next.js
+/.next/
+/out/
+
+# producción
+/build
+
+# varios
+.DS_Store
+Thumbs.db
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# variables de entorno (se versiona solo .env.example)
+.env
+.env.*
+!.env.example
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
