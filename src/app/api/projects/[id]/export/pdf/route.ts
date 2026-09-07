@@ -19,7 +19,7 @@ export const GET = handle<Ctx>(async (request, context) => {
   const [project, pdf] = await Promise.all([
     getProject(id),
     renderProjectPdf({
-      baseUrl: resolveBaseUrl(request, url),
+      baseUrl: printBaseUrl(),
       projectId: id,
       userId: access.user.id,
       options,
@@ -35,15 +35,16 @@ export const GET = handle<Ctx>(async (request, context) => {
   });
 });
 
-/** URL que el servidor usa para abrir su propia página de impresión. */
-function resolveBaseUrl(request: Request, url: URL): string {
-  if (process.env.PRINT_BASE_URL) return process.env.PRINT_BASE_URL;
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  if (forwardedHost) {
-    const proto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
-    return `${proto}://${forwardedHost}`;
-  }
-  return url.origin;
+/**
+ * URL con la que el servidor abre su propia página de impresión. **No** se deriva de la petición:
+ * `Host` y `X-Forwarded-Host` los controla quien llama, y usarlos permitiría que Puppeteer
+ * navegara a un host ajeno llevándose el token de impresión (SSRF y fuga del token). Se usa
+ * `PRINT_BASE_URL` si está configurada y, si no, la interfaz de loopback del propio proceso.
+ */
+function printBaseUrl(): string {
+  const configured = process.env.PRINT_BASE_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  return `http://127.0.0.1:${process.env.PORT ?? "3000"}`;
 }
 
 function slug(text: string): string {
