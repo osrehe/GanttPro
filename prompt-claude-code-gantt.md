@@ -1,296 +1,306 @@
-# Prompt multipasos para Claude Code — Aplicación de Cartas Gantt
+# Prompt multipasos para Claude Code — GanttPro (v2)
 
-> **Cómo usarlo:** pega el **Paso 0** al iniciar la sesión en Claude Code. Luego pega cada paso siguiente **solo cuando el anterior esté aceptado** (criterios de aceptación cumplidos). No mezcles pasos: cada uno es un `commit` cerrado con QA.
+> **Versión 2 — 2026-09-06.** Revisión de la spec original tras análisis con Claude Code. Cambios principales: 12 pasos en vez de 9, autenticación mínima adelantada, Postgres como único motor, decisiones de dominio y arquitectura cerradas antes de codificar. El historial de la v1 queda en git.
+>
+> **Cómo usarlo:** pega el **Paso 0** al iniciar la sesión en Claude Code. Luego pega cada paso siguiente **solo cuando el anterior esté aceptado** (criterios de aceptación cumplidos). No mezcles pasos: cada uno es un `commit` cerrado con QA y un tag `paso-N`.
 
 ---
 
-## PASO 0 — Contexto, reglas y CLAUDE.md
+## Decisiones ya tomadas (no reabrir sin consultar)
+
+| Tema | Decisión |
+|---|---|
+| Base de datos | PostgreSQL 16 en Docker, único proveedor para dev, test y prod. Sin fallback SQLite. |
+| Despliegue | Docker self-hosted / VPS (proceso Node persistente). |
+| Autenticación | Login mínimo (Auth.js credenciales + admin en seed) desde el Paso 4. Roles por proyecto, Google y enlaces compartidos en el Paso 10. |
+| Layout del repo | Next.js en la raíz + `packages/engine` como workspace npm, consumido vía `transpilePackages`. El engine no importa React, Next ni Prisma (regla ESLint). |
+| Fechas | Date-only. `@db.Date` en Prisma; `YYYY-MM-DD` en engine y API. Índice precomputado de días hábiles por calendario. |
+| Planificación | Todas las tareas ASAP. Cada tarea hoja tiene `anchorDate` (intención del usuario) y `startDate`/`endDate` calculados. Inicio = max(ancla, derivado de predecesoras). Arrastrar actualiza el ancla; quitar dependencia vuelve al ancla. |
+| Esfuerzo y costo | Duración fija en días hábiles; esfuerzo informativo. Horas asignadas = duración × horas/día × % dedicación. Costo = horas × tarifa UF. |
+| Resúmenes e hitos | Resumen: fechas y avance derivados, no editables; avance ponderado por duración (default) o esfuerzo. Hito: duración 0. Dependencias hacia/desde resúmenes **no permitidas** en v1. |
+| Render del Gantt | SVG + React con virtualización vertical y un modelo de layout puro compartido con PNG y PDF. |
+| PDF | Puppeteer contra ruta interna `/print/gantt` con páginas explícitas. Texto vectorial. Chromium en la imagen Docker. |
+| Undo/redo | Store Zustand único con patrón command; engine en cliente para preview optimista, servidor como fuente de verdad; inverso persistido vía endpoint bulk. |
+| API | Route Handlers, Zod compartido en `src/lib/schemas`, envolvente `{ data } \| { error: { code, message, details } }`, códigos `VALIDATION`, `NOT_FOUND`, `FORBIDDEN`, `CYCLE`, `CONFLICT`. Tests de integración invocan los handlers directamente contra BD `ganttpro_test`. |
+| Colaboración | Polling TanStack Query 2 s contra `GET /api/projects/:id/changes?since=`. SSE queda para v2. |
+| Idioma | Español (Chile) en UI, docs, comentarios y commits. Identificadores en inglés. Sin framework i18n. Feriados de Chile como JSON estático por año. |
+| Git | Un paso = un commit + tag `paso-N`. CI en GitHub Actions. |
+
+---
+
+## PASO 0 — Bootstrap del proyecto
 
 ```
 Vas a construir "GanttPro", una aplicación web para planificar proyectos con cartas Gantt.
-Trabajaremos en pasos numerados. En cada paso:
+Trabajaremos en pasos numerados (0 a 11) definidos en prompt-claude-code-gantt.md. En cada paso:
 1. Antes de escribir código, describe brevemente el enfoque y la lista de archivos que crearás o modificarás.
 2. Implementa completo (sin TODOs ni placeholders).
 3. Ejecuta lint, typecheck y tests; corrige hasta que todo pase.
 4. Termina con un resumen: qué se hizo, cómo probarlo manualmente, y qué falta para el siguiente paso.
-No avances al siguiente paso hasta que yo lo apruebe.
+No avances al siguiente paso hasta que yo lo apruebe. Respeta la tabla "Decisiones ya tomadas".
 
 Stack (no cambiar sin consultarme):
-- Next.js 15 (App Router) + TypeScript estricto + Tailwind + shadcn/ui
-- Prisma ORM + PostgreSQL (dev con Docker Compose; fallback SQLite para desarrollo rápido)
-- Zustand para estado del Gantt; TanStack Query para datos remotos
+- Next.js 15 (App Router) + TypeScript estricto (strict + noUncheckedIndexedAccess) + Tailwind + shadcn/ui
+- Prisma ORM + PostgreSQL 16 (Docker Compose)
+- Zustand para estado del Gantt; TanStack Query para datos remotos; TanStack Table para la grilla
 - Zod para validación en ambos lados
-- Vitest (unit) + Playwright (e2e)
-- Exportación: exceljs (Excel), @react-pdf/renderer o Puppeteer (PDF)
-- Entorno: Windows 11 + VS Code + PowerShell. Todos los scripts npm deben funcionar en PowerShell (usa cross-env, rimraf, etc.).
+- Vitest (unit + integración) + Playwright (e2e)
+- Exportación: exceljs (Excel), Puppeteer (PDF)
+- Recharts para gráficos
+- Entorno: Windows 11 + VS Code + PowerShell. Todos los scripts npm deben funcionar en PowerShell (cross-env, rimraf).
 
-Idioma: toda la UI, mensajes, comentarios y documentación en español (Chile). Nombres de código (variables, tablas, funciones, rutas) en inglés.
-
-Primera tarea de este paso:
-- Crea CLAUDE.md en la raíz con: descripción del proyecto, stack, convenciones de código, comandos (dev, build, test, lint, db:migrate, db:seed), estructura de carpetas y la regla de "un paso = un commit con tests".
-- Inicializa el repo, .gitignore, .env.example, docker-compose.yml (Postgres), y el esqueleto de Next.js con una página /health que responda OK.
-- Configura ESLint, Prettier, Husky (pre-commit: lint + typecheck).
+Tareas de este paso:
+- git init, .gitignore, .env.example, docker-compose.yml (Postgres 16 con BD ganttpro y ganttpro_test).
+- Esqueleto Next.js 15 con src/, Tailwind, shadcn/ui inicializado, GET /health que responde { status: "ok" }.
+- Workspace packages/engine con package.json, tsconfig, un módulo trivial y un test Vitest. Vitest en la raíz con projects (engine, web).
+- ESLint (incluida regla no-restricted-imports que impide importar react/next/@prisma desde packages/engine), Prettier, Husky + lint-staged (pre-commit: lint + typecheck).
+- GitHub Actions: lint, typecheck, test.
+- docs/spec/plan-de-pasos.md con el plan de 12 pasos; CLAUDE.md con descripción, stack, convenciones, comandos reales, estructura y la regla "un paso = un commit con tests".
 
 Criterios de aceptación:
 - `npm run dev` levanta la app y /health responde.
-- `npm run lint` y `npm run typecheck` pasan sin errores.
+- `npm run lint`, `npm run typecheck` y `npm run test` pasan sin errores.
+- `docker compose up -d` levanta Postgres.
 - CLAUDE.md existe y describe el flujo de trabajo por pasos.
 ```
 
 ---
 
-## PASO 1 — Especificación funcional y arquitectura (spec-first)
+## PASO 1 — Especificación funcional y ADRs (spec-first)
 
 ```
 Antes de implementar funcionalidades, escribe la especificación en /docs:
 
-1. /docs/spec/funcional.md — Casos de uso completos con criterios de aceptación en formato Given/When/Then:
+1. /docs/spec/funcional.md — Casos de uso completos con criterios de aceptación Given/When/Then:
    - Gestión de proyectos (crear, duplicar, archivar, calendario laboral por proyecto: días hábiles, feriados, horas/día).
-   - Tareas con jerarquía ilimitada (WBS: tarea → subtarea → sub-subtarea). Tareas resumen calculan fecha inicio/fin y % avance ponderado por duración o esfuerzo (configurable).
-   - Campos de tarea: código WBS (1, 1.1, 1.1.2…), nombre, descripción, inicio, fin, duración (días hábiles), esfuerzo (horas), % avance, prioridad, estado, color, hito (duración 0), notas.
-   - Dependencias entre tareas: tipos FS, SS, FF, SF con lag/lead (+/- días). Detección de ciclos. Reprogramación automática de sucesoras (scheduling engine).
-   - Recursos: personas, equipos, materiales. Tarifa (en UF o CLP), capacidad (h/día), calendario propio. Asignación a tareas con % dedicación. Detección de sobreasignación.
-   - Línea base (baseline): guardar snapshot y comparar plan vs. real (variación de fechas y avance).
+   - Tareas con jerarquía ilimitada (WBS). Tareas resumen con fechas y % avance derivados (ponderación por duración o esfuerzo, configurable).
+   - Campos de tarea: wbsCode, name, description, anchorDate, startDate, endDate, durationDays, effortHours, progressPct, priority, status, color, isMilestone, isSummary, notes.
+   - Dependencias FS/SS/FF/SF con lag/lead en días hábiles. Detección de ciclos (el mensaje indica el ciclo por códigos WBS). Reprogramación automática de sucesoras.
+   - Casos que la v1 omitía: arrastrar una tarea con predecesoras (actualiza anchorDate), quitar una dependencia (vuelve al ancla), intentar dependencia hacia/desde resumen (rechazada), reindentar con dependencias existentes.
+   - Recursos: personas, equipos, materiales. Tarifa (UF o CLP), capacidad (h/día), calendario propio. Asignación con % dedicación. Sobreasignación.
+   - Línea base: snapshot y comparación plan vs. real.
    - Ruta crítica (CPM: forward/backward pass, holgura total y libre).
-   - Vista Gantt interactiva + vista tabla + vista de carga de recursos.
-   - Exportación a Excel y PDF; importación desde Excel/CSV y MS Project XML.
-   - Usuarios y roles (admin, editor, lector). Historial de cambios (audit log). Undo/redo.
+   - Vista Gantt + vista tabla + vista de carga de recursos.
+   - Exportación Excel/PDF/PNG; importación Excel/CSV y MS Project XML.
+   - Usuarios, roles por proyecto (admin, editor, lector), audit log, undo/redo.
 
-2. /docs/spec/modelo-datos.md — Modelo entidad-relación (Mermaid) y diccionario de datos.
+2. /docs/spec/modelo-datos.md — ER en Mermaid y diccionario de datos. Entidades: Project, Calendar, Holiday, Task, Dependency, Resource, Assignment, Baseline, BaselineTask, User, ProjectMember, AuditLog, Comment, ShareLink.
 
-3. /docs/spec/arquitectura.md — Diagrama de componentes (Mermaid), decisiones de arquitectura (ADR) numeradas: por qué el scheduling engine vive en /packages/engine como módulo puro sin dependencias de UI ni DB (para testearlo unitariamente y reutilizarlo en el cliente), estrategia de renderizado del Gantt (SVG vs. Canvas — elige y justifica), estrategia de exportación PDF.
+3. /docs/spec/arquitectura.md + /docs/adr/ADR-001…010.md — Diagrama de componentes (Mermaid) y una ADR por cada fila de la tabla "Decisiones ya tomadas" (contexto, decisión, consecuencias, alternativas descartadas).
 
-4. /docs/spec/plan-de-pasos.md — Mapea los Pasos 2 a 8 de este plan a los casos de uso, para que la spec sea la fuente de verdad.
+4. /docs/spec/plan-de-pasos.md — Matriz paso ↔ casos de uso (actualiza la escrita en el Paso 0).
 
 Criterios de aceptación:
-- Los cuatro documentos existen y son consistentes entre sí (mismos nombres de entidades y campos).
+- Los documentos usan exactamente los mismos nombres de entidades y campos.
 - Cada caso de uso tiene al menos un criterio Given/When/Then.
-- Las decisiones de arquitectura están justificadas y son verificables.
+- Cada ADR tiene contexto, decisión y consecuencias verificables.
 ```
 
 ---
 
-## PASO 2 — Modelo de datos, motor de planificación y API
+## PASO 2 — Engine: calendario, WBS y scheduling
 
 ```
-Implementa la capa de datos y el motor de cálculo según /docs/spec.
+Implementa en /packages/engine (TypeScript puro, sin React ni Prisma):
 
-1. Prisma schema con: Project, Calendar, Holiday, Task (self-relation parentId, orderIndex, wbsCode), Dependency (predecessorId, successorId, type, lagDays), Resource, Assignment (taskId, resourceId, allocationPct), Baseline, BaselineTask, User, Role, AuditLog. Índices para consultas por proyecto y por jerarquía.
-
-2. /packages/engine (TypeScript puro, sin React ni Prisma):
-   - calculateWorkingDays(start, end, calendar) y addWorkingDays(date, days, calendar).
-   - scheduleProject(tasks, dependencies, calendar): aplica restricciones FS/SS/FF/SF + lag, propaga cambios a sucesoras, recalcula tareas resumen (rollup de fechas y avance ponderado).
-   - criticalPath(tasks, dependencies): forward/backward pass, early/late start/finish, holgura total y libre, marca isCritical.
-   - detectCycle(dependencies) → lanza error descriptivo indicando el ciclo.
-   - resourceLoad(assignments, tasks, calendar) → carga por recurso por día, con flag de sobreasignación.
-   - Tests unitarios Vitest con cobertura ≥ 90% en el engine. Incluye casos borde: tarea que cruza fin de semana, feriado en el inicio, lag negativo, hito, cadena de 50 tareas, ciclo A→B→C→A.
-
-3. API (Route Handlers en /app/api) con validación Zod y respuestas tipadas:
-   - CRUD de proyectos, tareas (con reordenar y reindentar: mover una tarea bajo otro padre recalcula WBS), dependencias, recursos, asignaciones, baselines.
-   - PATCH /tasks/:id que aplica el cambio y devuelve todas las tareas afectadas por el reschedule en una sola respuesta.
-   - Todas las mutaciones registran AuditLog (quién, qué, antes/después).
-
-4. Seed con un proyecto de ejemplo realista (≈40 tareas en 3 niveles, 6 recursos, 25 dependencias mixtas, 2 hitos, feriados chilenos 2026).
+1. calendar.ts: isWorkingDay, addWorkingDays, workingDaysBetween. Índice precomputado fecha → ordinal de día hábil para que las operaciones sean O(1) dentro del rango del proyecto.
+2. wbs.ts: renumber(tasks), indent/outdent/move que devuelven la lista reordenada con códigos nuevos y marcan isSummary.
+3. schedule.ts: scheduleProject(tasks, dependencies, calendar): aplica FS/SS/FF/SF + lag, respeta anchorDate, propaga en orden topológico, hace rollup de fechas y avance en resúmenes; devuelve solo las tareas que cambiaron.
+4. cycles.ts: detectCycle(dependencies) → devuelve el ciclo como lista ordenada de ids/códigos WBS.
+5. Tests Vitest con cobertura ≥ 90%. Casos borde: tarea que cruza fin de semana, feriado en el inicio, lag negativo, hito, cadena de 50 tareas, ciclo A→B→C→A, quitar dependencia vuelve al ancla, reindentar renumera todo el proyecto.
 
 Criterios de aceptación:
-- `npm run db:migrate` y `npm run db:seed` funcionan desde cero.
-- Tests del engine pasan con cobertura ≥ 90%.
-- Tests de integración de API (Vitest + supertest o fetch contra el servidor) para el flujo: crear tarea → crear dependencia → mover predecesora → verificar que la sucesora se movió.
-- Reindentar una tarea reasigna correctamente los códigos WBS de todo el proyecto.
+- Cobertura ≥ 90% en packages/engine.
+- scheduleProject con 1.000 tareas y 1.500 dependencias tarda < 50 ms en Vitest (test de rendimiento incluido).
 ```
 
 ---
 
-## PASO 3 — UI base: proyectos, tabla WBS, recursos
+## PASO 3 — Engine: ruta crítica, carga de recursos, varianza y layout
 
 ```
-Construye la interfaz base con shadcn/ui, en español, responsive (mínimo 1280px para el Gantt, móvil solo para lectura).
+Amplía /packages/engine:
 
-1. Layout con sidebar: Proyectos, Recursos, Configuración. Header con nombre del proyecto activo, selector de vista (Tabla / Gantt / Recursos) y botones Exportar e Importar (deshabilitados hasta el Paso 6).
-
-2. Página de proyectos: lista con cards (nombre, fechas, % avance, nº tareas, estado), crear/editar/duplicar/archivar.
-
-3. Vista Tabla (grid editable estilo hoja de cálculo) usando TanStack Table:
-   - Columnas: WBS, Nombre (con indentación por nivel y toggle expandir/colapsar), Inicio, Fin, Duración, % Avance, Recursos asignados, Predecesoras (formato "3FS+2d; 5SS"), Estado.
-   - Edición inline con Enter/Tab, navegación con teclado, undo/redo (Ctrl+Z / Ctrl+Y) con historial en Zustand.
-   - Acciones: agregar tarea, subtarea, hito; indentar/desindentar (Tab / Shift+Tab); mover arriba/abajo; eliminar con confirmación.
-   - Al editar una fecha o dependencia, refleja de inmediato las tareas afectadas devueltas por la API (resaltado de 1 segundo en filas que cambiaron).
-
-4. Página de recursos: CRUD con tarifa en UF, capacidad, calendario. Vista de asignaciones por recurso.
-
-5. Panel lateral de detalle de tarea (sheet): todos los campos, editor de dependencias con validación de ciclos (mensaje claro), asignación de recursos con % dedicación, notas markdown.
+1. cpm.ts: forward/backward pass, ES/EF/LS/LF, holgura total y libre, isCritical.
+2. resources.ts: resourceLoad(assignments, tasks, calendar) → carga por recurso por día con flag de sobreasignación, horas y costo (horas = duración × horas/día × % dedicación; costo = horas × tarifa).
+3. baseline.ts: variance(tasks, baselineTasks) (desviación inicio/fin en días, delta de avance) y expectedProgressAt(statusDate).
+4. layout.ts: modelo de geometría del Gantt: escalas día/semana/mes/trimestre, coordenadas de barras, corchetes de resumen, rombos de hito, rutas ortogonales de flechas. Sin dependencias de DOM.
 
 Criterios de aceptación:
-- Se puede crear la estructura completa de un proyecto solo con teclado.
-- Undo/redo funciona sobre al menos 20 operaciones consecutivas.
-- Playwright e2e: crear proyecto → 3 tareas → indentar 2 como subtareas → verificar WBS 1, 1.1, 1.2 y que la tarea 1 muestre fechas rollup.
-- Sin errores de consola ni warnings de hidratación.
+- Cobertura ≥ 90% mantenida.
+- Tests de CPM contra un ejemplo con holguras conocidas.
+- Snapshot tests del layout para las cuatro escalas.
 ```
 
 ---
 
-## PASO 4 — Gantt interactivo
+## PASO 4 — Datos y autenticación mínima
 
 ```
-Implementa la vista Gantt según la decisión de renderizado de /docs/spec/arquitectura.md.
-
-1. Layout: panel izquierdo con la tabla WBS (columnas reducidas, sincronizada en scroll vertical) + panel derecho con la línea de tiempo. Divisor redimensionable.
-
-2. Escala de tiempo: día / semana / mes / trimestre, con zoom (Ctrl+rueda) y botón "Ajustar al proyecto". Cabecera de dos niveles (mes / día, o trimestre / semana). Fines de semana y feriados sombreados. Línea vertical "Hoy".
-
-3. Barras:
-   - Tarea normal: barra con relleno proporcional al % avance y etiqueta del nombre/recursos a la derecha.
-   - Tarea resumen: barra tipo corchete negro.
-   - Hito: rombo.
-   - Ruta crítica en rojo (toggle).
-   - Baseline como barra fantasma gris debajo de la barra actual (toggle).
-   - Color por tarea, por recurso o por estado (selector).
-
-4. Interacciones (drag & drop con precisión de día hábil, snap a la grilla):
-   - Arrastrar barra → mueve la tarea (respeta calendario, reprograma sucesoras).
-   - Arrastrar borde derecho → cambia duración.
-   - Arrastrar el handle interior → cambia % avance.
-   - Arrastrar desde el conector (punto al inicio/fin de una barra) hasta otra barra → crea dependencia; el tipo se infiere del punto origen/destino (fin→inicio = FS, etc.). Muestra preview mientras se arrastra.
-   - Clic en una flecha de dependencia → popover para cambiar tipo/lag o eliminar.
-   - Doble clic en barra → abre panel de detalle.
-   - Todas las mutaciones pasan por el mismo store con undo/redo del Paso 3.
-
-5. Flechas de dependencia: enrutamiento ortogonal (codos), evitando cruzar barras cuando sea posible; punta de flecha en la sucesora; resaltado al hover de la tarea.
-
-6. Rendimiento: el Gantt debe manejar 1.000 tareas con scroll fluido (virtualización vertical). Mide y reporta el tiempo de render inicial y el de un drag.
+1. prisma/schema.prisma completo según /docs/spec/modelo-datos.md. Fechas de plan con @db.Date. Índices por projectId y por (projectId, parentId, orderIndex). Migración inicial.
+2. Auth.js con proveedor de credenciales (bcrypt). middleware.ts protege /(app) y /api salvo /health y /api/auth. Helper getSessionUser().
+3. src/lib/audit.ts: withAudit(userId, entity, before, after).
+4. prisma/seed.ts: usuario admin@ganttpro.local, proyecto realista (≈40 tareas en 3 niveles, 6 recursos, 25 dependencias mixtas, 2 hitos, feriados chilenos 2026). prisma/seed-perf.ts con 1.000 tareas.
+5. Scripts db:migrate, db:seed, db:seed:perf, db:reset.
 
 Criterios de aceptación:
-- Playwright e2e: arrastrar una barra 3 días → verificar que la sucesora FS se movió 3 días; crear dependencia por drag → verificar que aparece la flecha y el campo Predecesoras en la tabla.
-- Test de rendimiento con seed de 1.000 tareas: render inicial < 1,5 s, drag sin caídas visibles de frames (< 16 ms por frame en promedio, medido con performance.now()).
-- El Gantt y la tabla siempre muestran los mismos datos (sin desincronización tras 50 operaciones aleatorias — escribe un test que lo verifique).
+- db:migrate y db:seed funcionan desde cero sobre Docker.
+- Playwright: login correcto, login incorrecto, ruta protegida redirige a /login.
 ```
 
 ---
 
-## PASO 5 — Avance, línea base, carga de recursos y reportes
+## PASO 5 — API
 
 ```
-1. Seguimiento de avance:
-   - Fecha de estado (status date) configurable; indicador visual de tareas atrasadas (deberían tener más avance según la fecha de estado).
-   - Actualización masiva: "marcar avance según fecha de estado" para todas las tareas seleccionadas.
-   - Campos calculados: avance real vs. planificado, días de desviación.
+Route Handlers en src/app/api con Zod compartido en src/lib/schemas y envolvente { data } | { error }:
 
-2. Línea base:
-   - Guardar hasta 5 baselines nombradas con fecha; elegir cuál se muestra en el Gantt.
-   - Tabla comparativa: tarea, inicio/fin baseline, inicio/fin actual, variación en días, variación de avance.
+1. CRUD de proyectos, tareas, dependencias, recursos, asignaciones, baselines.
+2. PATCH /api/tasks/:id ejecuta el engine en el servidor y devuelve { task, affected: Task[] }.
+3. POST /api/projects/:id/tasks/bulk (para undo/redo). POST /api/tasks/:id/move (reindentar/reordenar → devuelve todas las tareas con WBS recalculado).
+4. GET /api/projects/:id/changes?since=<cursor> sobre AuditLog.
+5. Toda mutación pasa por withAudit y verifica pertenencia al proyecto.
+6. src/lib/api-client.ts tipado para el cliente.
 
-3. Vista de recursos (histograma):
-   - Gráfico de carga diaria/semanal por recurso, línea de capacidad, zonas de sobreasignación en rojo.
-   - Clic en una barra → lista de tareas que generan esa carga.
-   - Función "nivelar" simple: sugiere retrasar tareas no críticas para eliminar sobreasignación (muestra propuesta antes de aplicar).
+Criterios de aceptación (Vitest de integración contra ganttpro_test, invocando los handlers directamente):
+- Crear tarea → crear dependencia → mover predecesora → la sucesora se movió.
+- Crear ciclo → 422 con código CYCLE y el ciclo en details.
+- Reindentar → códigos WBS correctos en todo el proyecto.
+- Usuario sin acceso al proyecto → 403.
+```
 
-4. Dashboard del proyecto:
-   - KPIs: % avance global, tareas atrasadas, hitos próximos (15 días), costo planificado vs. consumido (tarifa UF × horas), fecha fin estimada vs. baseline.
-   - Curva S (avance planificado vs. real acumulado) con Recharts.
+---
 
-5. Auditoría: vista de historial de cambios filtrable por tarea/usuario/fecha.
+## PASO 6 — UI base: proyectos, tabla WBS, recursos
+
+```
+Interfaz con shadcn/ui, en español, mínimo 1280px para edición.
+
+1. Layout con sidebar (Proyectos, Recursos, Configuración) y header con proyecto activo, selector de vista (Tabla / Gantt / Recursos) y botones Exportar/Importar deshabilitados hasta el Paso 9.
+2. Página de proyectos: cards (nombre, fechas, % avance, nº tareas, estado), crear/editar/duplicar/archivar.
+3. Store Zustand único con historial de comandos (Ctrl+Z / Ctrl+Y) sincronizado con TanStack Query. Cada comando guarda el snapshot previo de lo que toca; el inverso se persiste vía bulk.
+4. Vista Tabla con TanStack Table: WBS, Nombre (indentación + expandir/colapsar), Inicio, Fin, Duración, % Avance, Recursos, Predecesoras ("3FS+2d; 5SS"), Estado. Edición inline con Enter/Tab, navegación por teclado, Tab/Shift+Tab indentar, mover arriba/abajo, eliminar con confirmación. Resaltado de 1 s en filas afectadas devueltas por la API.
+5. Panel lateral de detalle (sheet) con todos los campos, editor de dependencias (muestra el ciclo devuelto por el engine), asignaciones con % dedicación, notas markdown.
+6. Página de recursos: CRUD con tarifa UF, capacidad, calendario; asignaciones por recurso.
 
 Criterios de aceptación:
-- Tests del engine para varianza vs. baseline y para el algoritmo de nivelación (no debe mover tareas críticas ni crear ciclos).
-- Playwright: guardar baseline → mover 2 tareas → verificar que la tabla comparativa muestra la variación correcta.
-- El costo en UF se calcula con el valor de UF ingresado manualmente en Configuración (dejar preparado un adaptador para consultar el valor diario desde una API externa, sin implementarlo aún).
+- Estructura completa de un proyecto creable solo con teclado.
+- Test unitario del store: undo/redo sobre 20 operaciones consecutivas.
+- Playwright: crear proyecto → 3 tareas → indentar 2 → WBS 1, 1.1, 1.2 y rollup en la tarea 1.
+- Sin errores de consola ni warnings de hidratación (assert en Playwright).
 ```
 
 ---
 
-## PASO 6 — Exportación a Excel y PDF
+## PASO 7 — Gantt interactivo
 
 ```
-1. Exportación a Excel (exceljs), botón Exportar → Excel:
-   - Hoja "Tareas": todas las columnas de la tabla, con indentación por nivel, filas resumen en negrita, agrupación de filas (outline) por jerarquía, % avance con formato de porcentaje, fechas con formato dd-mm-yyyy, encabezado congelado, autofiltro.
-   - Hoja "Gantt": grilla de celdas por día (o semana según rango) donde cada tarea pinta sus celdas con relleno de color según avance (planificado en color claro, avanzado en color oscuro, hitos con símbolo ◆). Cabecera con meses y días, fines de semana sombreados.
-   - Hoja "Recursos": asignaciones y horas por recurso.
-   - Hoja "Dependencias": lista completa.
-   - Hoja "Resumen": KPIs del dashboard.
-   - El archivo debe abrirse sin errores ni advertencias de reparación en Excel para Windows.
-
-2. Exportación a PDF, botón Exportar → PDF, con diálogo de opciones:
-   - Orientación (horizontal por defecto), tamaño (A4/A3/Carta), rango de fechas, escala de tiempo, incluir/excluir columnas de la tabla, incluir ruta crítica/baseline, incluir leyenda.
-   - Paginación inteligente: si el Gantt no cabe, divide en páginas horizontales y verticales con la tabla WBS repetida a la izquierda de cada página y numeración "Página X de Y".
-   - Encabezado con nombre del proyecto, fecha de estado, logo opcional (configurable). Pie con fecha de generación.
-   - La calidad debe ser vectorial (texto seleccionable), no captura rasterizada.
-
-3. Exportación a imagen PNG del Gantt visible (bonus, para pegar en presentaciones).
-
-4. Importación:
-   - Desde Excel/CSV con plantilla descargable (columnas: WBS, Nombre, Inicio, Fin, Duración, Predecesoras, Recursos, % Avance). Vista previa con validación de errores fila por fila antes de confirmar.
-   - Desde MS Project XML (mspdi): tareas, jerarquía, dependencias, recursos y asignaciones.
+1. Split view redimensionable: tabla WBS reducida a la izquierda, línea de tiempo a la derecha, scroll vertical sincronizado.
+2. Escalas día/semana/mes/trimestre, zoom Ctrl+rueda, "Ajustar al proyecto", cabecera doble, fines de semana y feriados sombreados, línea "Hoy".
+3. Barras según layout.ts: normal con relleno de avance y etiqueta; resumen como corchete; hito como rombo; ruta crítica en rojo (toggle); baseline fantasma (toggle); color por tarea/recurso/estado.
+4. Interacciones con snap a día hábil: arrastrar barra (actualiza anchorDate y reprograma), borde derecho (duración), handle interior (% avance), conector → otra barra (crea dependencia, tipo inferido, con preview), clic en flecha (popover tipo/lag/eliminar), doble clic (detalle). Todo mediante comandos del store del Paso 6.
+5. Flechas ortogonales con codos, resaltado al hover.
+6. Virtualización vertical.
 
 Criterios de aceptación:
-- Test automatizado que exporta el proyecto seed a Excel y lo vuelve a leer con exceljs verificando nº de filas, fórmulas y formatos.
-- Test que genera el PDF del seed y verifica nº de páginas y que el texto "1.1" es extraíble (pdf-parse).
-- Importar la plantilla exportada del mismo proyecto debe producir una estructura idéntica (round-trip test).
-- Importar un XML de MS Project de ejemplo (genera uno en /fixtures) crea el proyecto sin pérdida de dependencias.
+- Playwright: arrastrar barra 3 días → sucesora FS se mueve 3 días; crear dependencia por drag → aparece la flecha y la columna Predecesoras.
+- Rendimiento con seed-perf (1.000 tareas): render inicial < 1,5 s; drag < 16 ms/frame promedio medido con performance.now(). Reporta los números.
+- Test de consistencia: 50 operaciones aleatorias sobre el store → tabla y Gantt derivan del mismo estado.
 ```
 
 ---
 
-## PASO 7 — Usuarios, roles, colaboración y pulido
+## PASO 8 — Avance, línea base, carga de recursos, dashboard y auditoría
 
 ```
-1. Autenticación con Auth.js (credenciales + Google opcional). Roles por proyecto: admin, editor, lector. Middleware que protege rutas y API.
-
-2. Compartir proyecto por enlace de solo lectura (token revocable).
-
-3. Colaboración básica: si dos editores tienen el mismo proyecto abierto, los cambios del otro aparecen en menos de 3 s (polling con TanStack Query o SSE — elige y justifica). Manejo de conflicto: última escritura gana + notificación toast "X modificó la tarea Y".
-
-4. Comentarios por tarea con menciones @usuario y notificación por correo (adaptador de correo con Resend o SMTP; en dev, escribir a consola).
-
-5. Pulido de producto:
-   - Atajos de teclado documentados (panel con "?").
-   - Modo oscuro.
-   - Estados vacíos, loading skeletons, mensajes de error accionables.
-   - Accesibilidad: navegación con teclado en el Gantt, roles ARIA, contraste AA.
-   - Página de configuración: calendario laboral, feriados (con carga de feriados de Chile por año), valor UF, formato de fechas, moneda de visualización (UF/CLP).
+1. Fecha de estado configurable; indicador de tareas atrasadas; actualización masiva "marcar avance según fecha de estado"; campos avance real vs. planificado y días de desviación.
+2. Hasta 5 baselines nombradas; selector de baseline visible en el Gantt; tabla comparativa con varianza.
+3. Vista de recursos: histograma (Recharts) diario/semanal por recurso con línea de capacidad y sobreasignación en rojo; clic → tareas que generan la carga.
+4. Nivelación simple en el engine (level.ts): propone retrasar tareas no críticas para eliminar sobreasignación; nunca mueve críticas ni crea ciclos; la UI muestra la propuesta antes de aplicar.
+5. Dashboard: % avance global, tareas atrasadas, hitos próximos (15 días), costo planificado vs. consumido (UF × horas), fin estimado vs. baseline, curva S.
+6. Costo en UF con valor ingresado en Configuración; adaptador UfProvider preparado para API externa (sin implementar).
+7. Vista de auditoría filtrable por tarea/usuario/fecha.
 
 Criterios de aceptación:
-- Playwright: lector no puede editar (UI deshabilitada y API responde 403).
-- Test de concurrencia: dos contextos de Playwright editan el mismo proyecto y ambos ven el cambio del otro.
-- Auditoría de accesibilidad con axe en las 3 vistas principales sin violaciones críticas.
+- Tests del engine para varianza y nivelación.
+- Playwright: guardar baseline → mover 2 tareas → tabla comparativa muestra la variación correcta.
 ```
 
 ---
 
-## PASO 8 — QA final, documentación y entrega
+## PASO 9 — Exportación e importación
 
 ```
-1. Ejecuta toda la suite: unit, integración, e2e (Chromium + Firefox), lint, typecheck, build de producción. Corrige todo lo que falle.
+1. Excel (exceljs): hojas Tareas (indentación, resúmenes en negrita, outline por jerarquía, % y fechas dd-mm-yyyy, encabezado congelado, autofiltro), Gantt (celdas por día o semana con relleno según avance, hitos ◆, fines de semana sombreados), Recursos, Dependencias, Resumen. Debe abrir sin advertencias en Excel para Windows.
+2. PDF: ruta /print/gantt?projectId&opts que renderiza páginas explícitas (tabla WBS repetida a la izquierda, "Página X de Y", encabezado con proyecto, fecha de estado y logo opcional, pie con fecha de generación) usando el mismo modelo de layout; Puppeteer genera el PDF. Diálogo de opciones: orientación, tamaño A4/A3/Carta, rango, escala, columnas, ruta crítica, baseline, leyenda. Texto seleccionable.
+3. PNG del Gantt visible.
+4. Importación Excel/CSV con plantilla descargable y previsualización con errores por fila. Importación MS Project XML (mspdi) con fixtures/msproject-sample.xml.
 
-2. Prueba de humo manual guiada: escribe /docs/qa/checklist.md con 30 verificaciones manuales ordenadas por flujo (crear proyecto → planificar → asignar → hacer seguimiento → exportar) y ejecútalas tú mismo usando el MCP de Playwright, adjuntando en /docs/qa/evidencia/ una captura por verificación. Reporta las que fallen y corrígelas.
+Criterios de aceptación:
+- Test exporta el seed a Excel y lo relee verificando filas y formatos.
+- Test genera el PDF del seed y verifica nº de páginas y que "1.1" es extraíble (pdf-parse).
+- Round-trip: importar la plantilla exportada produce estructura idéntica.
+- Importar el XML de ejemplo crea el proyecto sin pérdida de dependencias.
+```
 
-3. Rendimiento: Lighthouse ≥ 90 en Performance y Accessibility en la página del Gantt con el seed de 40 tareas. Reporta los números.
+---
 
-4. Seguridad: revisa validación de entradas en toda la API, rate limiting básico, headers de seguridad, y que ningún endpoint exponga datos de otros proyectos (escribe tests de autorización cruzada).
+## PASO 10 — Roles, colaboración y pulido
 
-5. Documentación:
-   - README.md: qué es, capturas, instalación en Windows paso a paso (Node, Docker Desktop, variables de entorno), comandos, despliegue (Dockerfile multi-stage + docker-compose de producción, y notas para Vercel + Neon/Supabase).
-   - /docs/manual-usuario.md en español con capturas de cada función.
-   - CHANGELOG.md con el resumen de los 8 pasos.
-   - Actualiza CLAUDE.md con el estado final y las convenciones para futuras extensiones.
+```
+1. Roles por proyecto (ProjectMember: admin, editor, lector) aplicados en middleware, API y UI. Google como proveedor opcional.
+2. Compartir por enlace de solo lectura (ShareLink con token revocable).
+3. Colaboración: polling TanStack Query cada 2 s contra /changes; toast "X modificó la tarea Y"; última escritura gana.
+4. Comentarios por tarea con @menciones y adaptador de correo (consola en dev; SMTP o Resend en prod).
+5. Pulido: atajos documentados (panel "?"), modo oscuro, estados vacíos, skeletons, errores accionables, ARIA y contraste AA, navegación por teclado en el Gantt, página de configuración (calendario, feriados de Chile por año, valor UF, formato de fechas, moneda UF/CLP).
 
-6. Entrega: tag v1.0.0, y una tabla final con: funcionalidad, estado (completa / parcial / no implementada), archivo(s) principal(es), test que la cubre.
+Criterios de aceptación:
+- Playwright: lector no puede editar (UI deshabilitada y API 403).
+- Dos contextos de Playwright editan el mismo proyecto y ambos ven el cambio del otro en < 3 s.
+- axe sin violaciones críticas en Tabla, Gantt y Recursos.
+```
+
+---
+
+## PASO 11 — QA final, documentación y entrega
+
+```
+1. Suite completa: unit, integración, e2e (Chromium + Firefox), lint, typecheck, build de producción sin warnings. Corrige todo lo que falle.
+2. /docs/qa/checklist.md con 30 verificaciones manuales ordenadas por flujo; ejecútalas con el MCP de Playwright y guarda una captura por verificación en /docs/qa/evidencia/. Corrige las que fallen.
+3. Lighthouse ≥ 90 en Performance y Accessibility en el Gantt con el seed de 40 tareas. Reporta los números.
+4. Seguridad: validación de entradas en toda la API, rate limiting básico, headers de seguridad, tests de autorización cruzada entre proyectos.
+5. Documentación: README.md (qué es, capturas, instalación en Windows paso a paso, comandos, despliegue con Dockerfile multi-stage con Chromium + docker-compose.prod.yml), /docs/manual-usuario.md, CHANGELOG.md con los 12 pasos, /docs/backlog.md, CLAUDE.md final.
+6. Entrega: tag v1.0.0 y tabla final: funcionalidad, estado (completa / parcial / no implementada), archivos principales, test que la cubre.
 
 Criterios de aceptación:
 - `npm run build` sin warnings.
-- 100% de la suite verde y checklist manual sin fallos abiertos.
-- La tabla de entrega no tiene filas "parcial" sin una explicación y una tarea pendiente registrada en /docs/backlog.md.
+- 100% de la suite verde y checklist sin fallos abiertos.
+- Ninguna fila "parcial" sin explicación y sin tarea registrada en /docs/backlog.md.
 ```
 
 ---
 
-## Extensiones sugeridas para una v2 (no incluir en el prompt inicial)
+## Cambios respecto a la v1
+
+- 9 pasos → 12. El Paso 2 original (schema + engine + API + seed) se reparte en los Pasos 2, 3, 4 y 5.
+- Autenticación mínima adelantada al Paso 4 para que el AuditLog registre "quién" desde el primer endpoint.
+- Eliminado el fallback SQLite.
+- Semánticas de dominio fijadas: `anchorDate`, esfuerzo informativo, sin dependencias sobre resúmenes, fechas date-only.
+- Render SVG, PDF con Puppeteer y colaboración por polling decididos ahora.
+- Añadidos: CI, seed-perf, endpoint bulk (undo), endpoint changes, envolvente de API con códigos de error, test de rendimiento del engine, modelo de layout compartido.
+- `Role` → `ProjectMember` (rol por proyecto).
+
+---
+
+## Extensiones sugeridas para una v2 (fuera de alcance)
 
 | Funcionalidad | Valor |
 |---|---|
-| Integración con valor UF diario (API mindicador.cl) | Costos siempre actualizados |
-| Multi-proyecto: vista portafolio y recursos compartidos entre proyectos | Gestión de capacidad de Licklider completa |
-| Sincronización bidireccional con Jira / Azure DevOps / GitHub Issues | Une planificación con ejecución |
-| Plantillas de proyecto (ej. "Implementación SaaS", "App móvil") | Arranque en minutos |
-| Asistente IA: generar WBS desde una descripción, estimar duraciones, detectar riesgos | Diferenciador de una fábrica de software IA |
+| Valor UF diario desde API (mindicador.cl) | Costos siempre actualizados |
+| Portafolio multi-proyecto con recursos compartidos | Gestión de capacidad completa |
+| SSE en lugar de polling | Colaboración más reactiva |
+| Sincronización con Jira / Azure DevOps / GitHub Issues | Une planificación con ejecución |
+| Plantillas de proyecto | Arranque en minutos |
+| Asistente IA: WBS desde descripción, estimación, riesgos | Diferenciador |
 | App móvil de solo lectura (Expo) | Seguimiento desde terreno |
 | Integración con Google Calendar / Outlook para hitos | Visibilidad del equipo |
