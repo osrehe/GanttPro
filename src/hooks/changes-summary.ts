@@ -1,0 +1,49 @@
+import type { AuditLogDto } from "@/lib/dto";
+
+/**
+ * Resumen en español de un lote de cambios ajenos para el aviso de colaboración (UC-34).
+ * Los cambios propios se descartan: el usuario ya los vio de forma optimista.
+ */
+
+export interface ChangesSummary {
+  /** Texto del aviso; nulo si no hay nada ajeno que informar. */
+  readonly message: string | null;
+  /** Cambios ajenos considerados. */
+  readonly count: number;
+  /** Nombres de los autores, en orden de aparición. */
+  readonly authors: string[];
+}
+
+/** Hasta este número de cambios se listan uno a uno; por encima se agrupan. */
+export const MAX_DETAILED_CHANGES = 3;
+
+export function summarizeChanges(
+  changes: readonly AuditLogDto[],
+  currentUserId: string | null,
+): ChangesSummary {
+  const others = changes.filter((c) => c.userId !== currentUserId);
+  const authors: string[] = [];
+  for (const change of others)
+    if (!authors.includes(change.userName)) authors.push(change.userName);
+  if (others.length === 0) return { message: null, count: 0, authors };
+
+  if (others.length <= MAX_DETAILED_CHANGES) {
+    const message = others.map((c) => `${c.userName} ${c.summary}`).join(" · ");
+    return { message, count: others.length, authors };
+  }
+
+  const first = authors[0] ?? "Alguien";
+  const rest = authors.length - 1;
+  const who =
+    rest === 0
+      ? first
+      : rest === 1
+        ? `${first} y 1 persona más`
+        : `${first} y ${rest} personas más`;
+  const verb = rest === 0 ? "hizo" : "hicieron";
+  return {
+    message: `${who} ${verb} ${others.length} cambios`,
+    count: others.length,
+    authors,
+  };
+}

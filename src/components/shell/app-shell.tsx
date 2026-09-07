@@ -1,12 +1,23 @@
 "use client";
 
-import { FolderKanban, LogOut, Redo2, Settings, Undo2, Upload, Users } from "lucide-react";
+import {
+  FolderKanban,
+  Keyboard,
+  LogOut,
+  Redo2,
+  Settings,
+  Undo2,
+  Upload,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { ExportMenu } from "@/components/export/export-menu";
 import { ImportDialog } from "@/components/import/import-dialog";
+import { ShortcutsDialog } from "@/components/shell/shortcuts-dialog";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -36,10 +47,11 @@ export function AppShell({ user, children }: AppShellProps) {
   const project = useProjectStore((s) => s.project);
   const role = useProjectStore((s) => s.role);
   const [importOpen, setImportOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const historyState = useProjectStore((s) => s.historyState);
   const undo = useProjectStore((s) => s.undo);
   const redo = useProjectStore((s) => s.redo);
-  useShortcuts();
+  useShortcuts(useCallback(() => setShortcutsOpen((open) => !open), []));
 
   const nav = [
     {
@@ -195,8 +207,25 @@ export function AppShell({ user, children }: AppShellProps) {
               <Upload className="size-4" />
               Importar
             </Button>
+            <Separator orientation="vertical" className="mx-1 h-6" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Atajos de teclado"
+                  data-testid="shortcuts-button"
+                  onClick={() => setShortcutsOpen(true)}
+                >
+                  <Keyboard className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Atajos de teclado (?)</TooltipContent>
+            </Tooltip>
+            <ThemeToggle />
           </div>
         </header>
+        <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
         <ImportDialog
           open={importOpen}
           onOpenChange={setImportOpen}

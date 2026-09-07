@@ -3,17 +3,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useChangesPolling } from "@/hooks/use-changes-polling";
 import { api } from "@/lib/api-client";
 import { describeError, useProjectStore } from "@/stores/project-store";
 
 /** Carga el proyecto completo y lo vuelca en el store; las vistas leen siempre del store. */
-export function ProjectLoader({ projectId, children }: { projectId: string; children: ReactNode }) {
+export function ProjectLoader({
+  projectId,
+  currentUserId = null,
+  children,
+}: {
+  projectId: string;
+  currentUserId?: string | null;
+  children: ReactNode;
+}) {
   const hydrate = useProjectStore((s) => s.hydrate);
+  const setCurrentUserId = useProjectStore((s) => s.setCurrentUserId);
   const loadedId = useProjectStore((s) => (s.loaded ? s.projectId : null));
   const query = useQuery({
     queryKey: ["project", projectId, "full"],
     queryFn: () => api.projects.full(projectId),
   });
+
+  useEffect(() => setCurrentUserId(currentUserId), [currentUserId, setCurrentUserId]);
 
   useEffect(() => {
     if (query.data) {
@@ -21,6 +33,9 @@ export function ProjectLoader({ projectId, children }: { projectId: string; chil
       performance.mark("project:hydrated");
     }
   }, [query.data, hydrate]);
+
+  // Colaboración simultánea: avisa de los cambios de otras personas y recarga el proyecto.
+  useChangesPolling(projectId, currentUserId);
 
   if (query.isError) {
     return (

@@ -21,6 +21,9 @@ export const authConfig = {
       // Impresión PDF: Puppeteer abre /print/* con un token firmado que verifica la propia página.
       if (pathname.startsWith("/print/") && request.nextUrl.searchParams.has("token")) return true;
 
+      // Enlaces de solo lectura: /share/<token> es público; la página valida el token (UC-33).
+      if (pathname.startsWith("/share/")) return true;
+
       if (isPublic) {
         if (isLoggedIn && pathname === "/login") {
           return Response.redirect(new URL("/", request.nextUrl));

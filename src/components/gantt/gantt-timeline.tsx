@@ -411,7 +411,7 @@ function Connectors({
         strokeWidth={1.5}
         data-connector="start"
         data-task-id={taskId}
-        aria-label="Conector de inicio"
+        aria-hidden
         onPointerDown={(e) => onPointerDown(e, taskId, "connect", "start")}
       />
       <circle
@@ -422,7 +422,7 @@ function Connectors({
         strokeWidth={1.5}
         data-connector="end"
         data-task-id={taskId}
-        aria-label="Conector de fin"
+        aria-hidden
         onPointerDown={(e) => onPointerDown(e, taskId, "connect", "end")}
       />
     </>

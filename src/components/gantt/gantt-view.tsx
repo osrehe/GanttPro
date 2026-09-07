@@ -16,6 +16,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { TaskSheet } from "@/components/table/task-sheet";
@@ -25,6 +26,7 @@ import { todayIso } from "@/lib/dates";
 import { exportFileName } from "@/lib/export/excel";
 import { exportGanttPng } from "@/lib/export/png";
 import type { DependencyDto, TaskDto } from "@/lib/dto";
+import { patchTaskCommand, editableSnapshot } from "@/stores/commands";
 import { depthOf, useProjectStore } from "@/stores/project-store";
 import { DependencyPopover, type ArrowPopoverState } from "./dependency-popover";
 import { GanttHeader } from "./gantt-header";
@@ -262,6 +264,54 @@ export function GanttView() {
     return () => window.removeEventListener("ganttpro:export-png", handler);
   }, [exportPng]);
 
+  // Navegación por teclado (accesibilidad): flechas seleccionan, Enter abre el detalle, Espacio
+  // contrae un resumen y Ctrl+flecha mueve la tarea un día hábil.
+  const onKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (rows.length === 0) return;
+      const index = rows.findIndex((t) => t.id === selectedTaskId);
+      const current = index >= 0 ? rows[index] : undefined;
+      const move = (delta: number) => {
+        const next = rows[Math.min(rows.length - 1, Math.max(0, (index < 0 ? 0 : index) + delta))];
+        if (!next) return;
+        select(next.id);
+        scrollRef.current
+          ?.querySelector(`[data-testid="gantt-row"][data-task-id="${next.id}"]`)
+          ?.scrollIntoView({ block: "nearest" });
+      };
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        move(index < 0 ? 0 : 1);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        move(index < 0 ? 0 : -1);
+      } else if (event.key === "Enter" && current) {
+        event.preventDefault();
+        openDetail(current.id);
+      } else if (event.key === " " && current?.isSummary) {
+        event.preventDefault();
+        toggleCollapsed(current.id);
+      } else if (
+        (event.key === "ArrowRight" || event.key === "ArrowLeft") &&
+        event.ctrlKey &&
+        current &&
+        canEdit &&
+        calendar &&
+        !current.isSummary
+      ) {
+        event.preventDefault();
+        const days = event.key === "ArrowRight" ? 1 : -1;
+        const anchorDate = calendar.addWorkingDays(current.anchorDate ?? current.startDate, days);
+        void useProjectStore
+          .getState()
+          .run(
+            patchTaskCommand(current.id, { anchorDate }, editableSnapshot(current), "mover tarea"),
+          );
+      }
+    },
+    [rows, selectedTaskId, select, openDetail, toggleCollapsed, canEdit, calendar],
+  );
+
   const onArrowClick = useCallback(
     (dependency: DependencyDto, clientX: number, clientY: number) => {
       const el = scrollRef.current;
@@ -309,7 +359,15 @@ export function GanttView() {
         onExportPng={() => void exportPng()}
         exporting={exporting}
       />
-      <div ref={scrollRef} className="relative flex-1 overflow-auto" data-testid="gantt-scroll">
+      <div
+        ref={scrollRef}
+        className="focus-visible:ring-ring relative flex-1 overflow-auto focus-visible:ring-2 focus-visible:outline-none"
+        data-testid="gantt-scroll"
+        tabIndex={0}
+        role="group"
+        aria-label="Carta Gantt: flechas para seleccionar, Enter para abrir el detalle"
+        onKeyDown={onKeyDown}
+      >
         <div
           className="flex"
           style={{

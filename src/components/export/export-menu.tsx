@@ -15,6 +15,7 @@ import {
 import { api } from "@/lib/api-client";
 import { downloadFromApi } from "@/lib/download";
 import { exportFileName } from "@/lib/export/excel";
+import { useMounted } from "@/hooks/use-mounted";
 import { describeError } from "@/stores/project-store";
 import { PdfExportDialog } from "./pdf-export-dialog";
 
@@ -29,6 +30,7 @@ interface Props {
 export function ExportMenu({ projectId, projectName, view }: Props) {
   const [pdfOpen, setPdfOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const mounted = useMounted();
 
   async function downloadExcel(gantt: "day" | "week") {
     if (!projectId) return;
@@ -52,6 +54,17 @@ export function ExportMenu({ projectId, projectName, view }: Props) {
       Exportar
     </>
   );
+
+  // Antes de montar se dibuja el mismo botón sin el menú: los identificadores que Radix genera con
+  // `useId` no existen en el HTML del servidor y no pueden discrepar al hidratar.
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="sm" disabled data-testid="export-menu">
+        <Download className="size-4" />
+        Exportar
+      </Button>
+    );
+  }
 
   return (
     <>

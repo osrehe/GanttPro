@@ -10,12 +10,20 @@ export function isEditingTarget(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
-/** Atajos globales: Ctrl+Z deshacer, Ctrl+Y / Ctrl+Shift+Z rehacer (fuera de campos de texto). */
-export function useShortcuts(): void {
+/**
+ * Atajos globales: "?" abre la ayuda, Ctrl+Z deshace y Ctrl+Y / Ctrl+Shift+Z rehacen. Ninguno actúa
+ * mientras el foco está en un campo de texto.
+ */
+export function useShortcuts(onHelp?: () => void): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (!(event.ctrlKey || event.metaKey)) return;
       if (isEditingTarget(event.target)) return;
+      if (event.key === "?" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        onHelp?.();
+        return;
+      }
+      if (!(event.ctrlKey || event.metaKey)) return;
       const key = event.key.toLowerCase();
       const { undo, redo, projectId } = useProjectStore.getState();
       if (!projectId) return;
@@ -29,5 +37,5 @@ export function useShortcuts(): void {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [onHelp]);
 }

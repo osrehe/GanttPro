@@ -36,6 +36,19 @@ Server-Sent Events (SSE). El despliegue es un proceso Node persistente
 6. **SSE queda como extensión v2** detrás de la misma interfaz: el hook `useProjectChanges` es el
    único consumidor del transporte; cambiarlo a `EventSource` no afecta al store ni a la UI.
 
+## Ajustes al implementarla (Paso 10)
+
+- **El intervalo es de 1,5 s, no de 2 s.** Cada tick cuesta dos viajes al servidor (el feed de
+  cambios y la recarga del proyecto), así que con 2 s el criterio "el otro ve el cambio en menos de
+  3 s" quedaba sin margen y fallaba en cuanto la máquina estaba cargada. Con 1,5 s el e2e mide entre
+  1,7 y 2,5 s.
+- El polling se detiene con la pestaña oculta y mientras hay un comando en vuelo (`busy`), para no
+  pisar una actualización optimista con datos del servidor que todavía no la incluyen.
+- El cursor arranca en el instante en que se abre el proyecto: al entrar no se anuncian cambios
+  viejos.
+- Los avisos se agrupan: más de tres cambios se resumen en "Ana Pérez y 2 personas más hicieron 7
+  cambios" (`summarizeChanges`).
+
 ## Consecuencias
 
 Positivas:

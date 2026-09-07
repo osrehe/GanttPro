@@ -221,3 +221,34 @@ export const updateSettingsSchema = z
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: "No hay cambios que aplicar" });
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
+
+// ---------------------------------------------------------------- Miembros y enlaces (Paso 10)
+
+export const addMemberSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Correo inválido"),
+  role: projectRoleSchema,
+});
+export type AddMemberInput = z.infer<typeof addMemberSchema>;
+
+export const updateMemberSchema = z.object({ role: projectRoleSchema });
+export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
+
+export const createShareLinkSchema = z.object({
+  /** Fecha de expiración (`YYYY-MM-DD`); nula o ausente = sin vencimiento. */
+  expiresAt: isoDateSchema.nullable().optional(),
+});
+export type CreateShareLinkInput = z.infer<typeof createShareLinkSchema>;
+
+// ---------------------------------------------------------------- Comentarios (Paso 10)
+
+export const createCommentSchema = z.object({
+  body: z.string().trim().min(1, "El comentario no puede estar vacío").max(5000),
+  /** Ids de los usuarios mencionados con @ en el texto. */
+  mentionIds: z.array(idSchema).max(20).optional(),
+});
+export type CreateCommentInput = z.infer<typeof createCommentSchema>;
+
+export const updateCommentSchema = createCommentSchema
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: "No hay cambios que aplicar" });
+export type UpdateCommentInput = z.infer<typeof updateCommentSchema>;

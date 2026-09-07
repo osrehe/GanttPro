@@ -586,17 +586,20 @@ export function TaskTable() {
         </Tooltip>
       </div>
 
+      {/* La semántica de grilla va en la tabla; el contenedor solo aporta scroll y foco. */}
       <div
         ref={containerRef}
         tabIndex={0}
-        role="grid"
-        aria-label="Tareas del proyecto"
-        aria-rowcount={rows.length}
         onKeyDown={onKeyDown}
         className="flex-1 overflow-auto outline-none focus-visible:ring-2 focus-visible:ring-inset"
         data-testid="task-grid"
       >
-        <table className="w-full border-collapse text-sm">
+        <table
+          role="grid"
+          aria-label="Tareas del proyecto"
+          aria-rowcount={rows.length}
+          className="w-full border-collapse text-sm"
+        >
           <thead className="bg-muted/60 sticky top-0 z-10">
             <tr>
               {COLUMNS.map((c) => (

@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 9
-completado** (exportación a Excel, PDF y PNG; importación Excel/CSV y MS Project). El siguiente
-paso es el Paso 10: roles por proyecto, enlaces compartidos, colaboración, comentarios y pulido.
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 10
+completado** (roles por proyecto, enlaces de solo lectura, colaboración por polling, comentarios con
+menciones y pulido). El siguiente y último paso es el Paso 11: QA final, documentación y entrega.
 
 Fuentes de verdad, en este orden:
 
@@ -107,7 +107,7 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   `src/middleware.ts`, que protege todo salvo `/login`, `/health` y `/api/auth`; la API sin sesión
   recibe 401 `UNAUTHORIZED`). `src/lib/auth.ts` agrega el proveedor de credenciales con Prisma y
   bcrypt y expone `auth`, `signIn`, `signOut`, `getSessionUser()` y `hashPassword()`. Roles por
-  proyecto en `ProjectMember` (se aplican en el Paso 10).
+  proyecto en `ProjectMember`.
 - **API** (`src/app/api`, ADR-009): Route Handlers delgados envueltos en `handle()` de
   `src/lib/api/response.ts` (envolvente `{ data }` / `{ error: { code, message, details } }` y mapeo
   de `ApiError`, `EngineError`, Zod y Prisma). Acceso con `requireProjectAccess(projectId, minRole)`
@@ -192,6 +192,30 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   `append` o `replace`, terminando en `rescheduleProject` (las fechas las decide el engine).
   `GET /api/import/template` descarga la plantilla. Diálogo en `src/components/import`; fixture
   MSPDI en `fixtures/msproject-sample.xml`.
+- **Roles, compartir y colaboración (Paso 10)**: los roles por proyecto viven en `ProjectMember` y
+  se aplican en la API con `requireProjectAccess(projectId, minRole)`; la interfaz deshabilita lo
+  que un lector no puede hacer (`role` del store). `src/lib/services/members.ts` gestiona los
+  miembros (siempre debe quedar al menos un administrador) y `src/lib/services/share.ts` los
+  enlaces de solo lectura: token de 32 hex, revocable y con vencimiento opcional, servidos en la
+  ruta pública `/share/[token]` (sin sesión, `noindex`, sin datos de personas). El diálogo
+  `src/components/members/members-dialog.tsx` se abre desde la tarjeta del proyecto. Google es un
+  proveedor opcional de Auth.js: solo se registra si existen `AUTH_GOOGLE_ID` y
+  `AUTH_GOOGLE_SECRET`, y no crea usuarios (el correo debe existir ya). La colaboración es
+  `src/hooks/use-changes-polling.ts`: consulta `/changes` cada 1,5 s desde `ProjectLoader`, resume
+  los cambios ajenos con `summarizeChanges` en un toast e invalida el proyecto (última escritura
+  gana); se detiene con la pestaña oculta o con un comando en vuelo. Los comentarios por tarea
+  (`src/lib/services/comments.ts`, `src/components/comments`) admiten @menciones sobre los
+  miembros del proyecto y notifican con el adaptador `src/lib/mailer.ts` (`ConsoleMailer` activo;
+  SMTP preparado y sin dependencia nueva).
+- **Pulido (Paso 10)**: tema claro/oscuro/automático con `next-themes` (`ThemeProvider` en
+  `providers.tsx`, selector en el header, `suppressHydrationWarning` en `<html>`), panel de atajos
+  que abre la tecla "?" (`shortcuts-dialog.tsx`, atajo en `use-shortcuts.ts`), navegación por
+  teclado en el Gantt (flechas, Enter, Espacio y Ctrl+flecha para mover un día hábil) y página de
+  Configuración real (`src/components/settings/settings-view.tsx`): preferencias globales contra
+  `/api/settings` y calendario laboral por proyecto contra `/api/projects/:id/calendar`, con carga
+  de los feriados de Chile disponibles en `src/lib/holidays`. `e2e/a11y.spec.ts` verifica con
+  `@axe-core/playwright` que no haya violaciones graves ni críticas en Proyectos, Tabla, Gantt,
+  Recursos y Configuración.
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`

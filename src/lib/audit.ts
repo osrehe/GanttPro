@@ -16,6 +16,8 @@ export interface AuditEntry {
     | "Baseline"
     | "Calendar"
     | "ProjectMember"
+    | "Comment"
+    | "ShareLink"
     | "Setting";
   readonly entityId: string;
   readonly action: AuditAction;

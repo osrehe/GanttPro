@@ -1,10 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, Copy, Pencil, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, Copy, Pencil, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { MembersDialog } from "@/components/members/members-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +22,7 @@ export function ProjectsPage() {
   const queryClient = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<ProjectSummaryDto | null | "new">(null);
+  const [sharing, setSharing] = useState<ProjectSummaryDto | null>(null);
   const projects = useQuery({ queryKey: ["projects"], queryFn: api.projects.list });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -106,8 +108,29 @@ export function ProjectsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Miembros y compartir"
+                  title={
+                    p.role === "ADMIN"
+                      ? "Miembros y compartir"
+                      : "Solo un administrador del proyecto puede gestionar miembros"
+                  }
+                  data-testid="open-members"
+                  disabled={p.role !== "ADMIN"}
+                  onClick={() => setSharing(p)}
+                >
+                  <Users className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   aria-label="Editar"
-                  title="Editar"
+                  title={
+                    p.role === "VIEWER"
+                      ? "Necesitas rol editor para modificar el proyecto"
+                      : "Editar"
+                  }
+                  data-testid="edit-project"
+                  disabled={p.role === "VIEWER"}
                   onClick={() => setEditing(p)}
                 >
                   <Pencil className="size-4" />
@@ -141,6 +164,16 @@ export function ProjectsPage() {
           ))}
         </div>
       )}
+
+      {sharing ? (
+        <MembersDialog
+          open
+          onOpenChange={(open) => !open && setSharing(null)}
+          projectId={sharing.id}
+          projectName={sharing.name}
+          isAdmin={sharing.role === "ADMIN"}
+        />
+      ) : null}
 
       <ProjectDialog
         open={editing !== null}

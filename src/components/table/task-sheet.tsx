@@ -19,6 +19,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { CommentsPanel } from "@/components/comments/comments-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateCl } from "@/lib/dates";
@@ -86,6 +87,9 @@ export function TaskSheet() {
                 <TabsTrigger value="notes" className="flex-1">
                   Notas
                 </TabsTrigger>
+                <TabsTrigger value="comments" className="flex-1">
+                  Comentarios
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="fields">
                 <TaskFields
@@ -112,6 +116,9 @@ export function TaskSheet() {
                     )
                   }
                 />
+              </TabsContent>
+              <TabsContent value="comments">
+                <CommentsPanel task={task} canEdit={canEdit} />
               </TabsContent>
             </Tabs>
           </>

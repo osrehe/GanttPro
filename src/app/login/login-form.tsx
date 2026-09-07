@@ -5,13 +5,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 
+/** Motivos por los que Auth.js puede rechazar el ingreso con Google (Paso 10). */
+const ERROR_MESSAGES: Readonly<Record<string, string>> = {
+  "cuenta-no-registrada":
+    "Esa cuenta de Google no tiene acceso: pide que te registren con ese correo.",
+};
+
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/";
+  const googleEnabled = process.env.NEXT_PUBLIC_AUTH_GOOGLE === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    ERROR_MESSAGES[params.get("error") ?? ""] ?? null,
+  );
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -68,6 +77,18 @@ export function LoginForm() {
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Ingresando…" : "Ingresar"}
       </Button>
+      {googleEnabled ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={pending}
+          data-testid="login-google"
+          onClick={() => void signIn("google", { callbackUrl })}
+        >
+          Entrar con Google
+        </Button>
+      ) : null}
     </form>
   );
 }

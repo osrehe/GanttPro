@@ -78,7 +78,7 @@ flowchart TB
     end
 
     ApiClient -->|HTTPS JSON| MW
-    Query -->|GET /changes cada 2 s| MW
+    Query -->|GET /changes cada 1,5 s| MW
     Prisma --> PG
     Exporters --> Chromium
     Chromium -->|abre| Print
@@ -251,7 +251,7 @@ La primera fila la impone ESLint; las demás se revisan en código y se añaden 
 | [ADR-007](../adr/ADR-007-pdf-con-puppeteer.md)                           | PDF vectorial con Puppeteer sobre `/print/gantt` con páginas explícitas                           |
 | [ADR-008](../adr/ADR-008-store-unico-y-undo-redo.md)                     | Store Zustand único con comandos invertibles; optimista en cliente, verdad en servidor            |
 | [ADR-009](../adr/ADR-009-diseno-de-api.md)                               | Route Handlers + Zod compartido + envolvente `{ data } \| { error }`; `affected` en una respuesta |
-| [ADR-010](../adr/ADR-010-colaboracion-por-polling.md)                    | Polling de 2 s sobre `AuditLog`; última escritura gana; SSE reservado para v2                     |
+| [ADR-010](../adr/ADR-010-colaboracion-por-polling.md)                    | Polling de 1,5 s sobre `AuditLog`; última escritura gana; SSE reservado para v2                   |
 | [ADR-011](../adr/ADR-011-importacion-con-previsualizacion.md)            | Importar en dos fases con validación por fila; un solo plan intermedio para CSV, Excel y MSPDI    |
 
 ## Riesgos y mitigaciones

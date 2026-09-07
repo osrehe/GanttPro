@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ProjectLoader } from "@/components/shell/project-loader";
+import { auth } from "@/lib/auth";
 
 export default async function ProjectLayout({
   children,
@@ -9,5 +10,11 @@ export default async function ProjectLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <ProjectLoader projectId={id}>{children}</ProjectLoader>;
+  // El id de la sesión llega al cliente para que el polling ignore los cambios propios (UC-34).
+  const session = await auth();
+  return (
+    <ProjectLoader projectId={id} currentUserId={session?.user?.id ?? null}>
+      {children}
+    </ProjectLoader>
+  );
 }

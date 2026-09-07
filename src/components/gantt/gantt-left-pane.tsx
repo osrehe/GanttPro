@@ -74,11 +74,13 @@ export function GanttLeftPane({
         return (
           <div
             key={task.id}
-            role="row"
+            // Sin roles de tabla: la vista accesible con semántica de grilla es la Tabla; aquí la
+            // fila es un elemento gráfico que se recorre con el teclado desde el contenedor.
             data-testid="gantt-row"
             data-task-id={task.id}
             data-wbs={task.wbsCode}
-            aria-selected={selected}
+            data-selected={selected ? "true" : "false"}
+            aria-current={selected ? true : undefined}
             className={cn(
               "absolute left-0 flex w-full items-center border-b text-xs transition-colors duration-500",
               selected ? "bg-primary/10" : "hover:bg-muted/40",

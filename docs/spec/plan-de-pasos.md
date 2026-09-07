@@ -1,6 +1,6 @@
 # Plan de pasos — GanttPro
 
-**Estado actual:** Paso 9 completado · Paso 10 (roles, colaboración y pulido) pendiente. Ver tabla de pasos y estado por caso de uso al final.
+**Estado actual:** Paso 10 completado · Paso 11 (QA final, documentación y entrega) pendiente. Ver tabla de pasos y estado por caso de uso al final.
 
 Versión 2 (2026-09-06). Fuente de verdad del orden de trabajo. Los prompts detallados de cada paso
 están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
@@ -46,7 +46,7 @@ están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
 | 7    | Gantt interactivo                                      | Split view, escalas, barras, drag & drop, dependencias por drag, flechas, virtualización                                             | e2e drag 3 días → sucesora FS; dependencia por drag; render < 1,5 s y drag < 16 ms/frame con 1.000 tareas; test de consistencia | Completado |
 | 8    | Seguimiento, baselines, recursos, dashboard, auditoría | Fecha de estado, baselines, histograma, nivelación, dashboard con curva S, vista de auditoría                                        | Tests de varianza y nivelación; e2e baseline → mover 2 tareas → tabla comparativa correcta                                      | Completado |
 | 9    | Exportación e importación                              | Excel, PDF vía `/print/gantt` + Puppeteer, PNG, import Excel/CSV y MSPDI                                                             | Round-trip Excel; PDF con páginas y texto "1.1"; round-trip plantilla; import MSPDI sin pérdida                                 | Completado |
-| 10   | Roles, colaboración y pulido                           | `ProjectMember`, `ShareLink`, polling, comentarios, atajos, modo oscuro, accesibilidad, configuración                                | Lector no edita (UI y 403); dos contextos ven cambios en < 3 s; axe sin violaciones críticas                                    | Pendiente  |
+| 10   | Roles, colaboración y pulido                           | `ProjectMember`, `ShareLink`, polling, comentarios, atajos, modo oscuro, accesibilidad, configuración                                | Lector no edita (UI y 403); dos contextos ven cambios en < 3 s; axe sin violaciones críticas                                    | Completado |
 | 11   | QA final y entrega                                     | Suite completa, checklist de 30 verificaciones con evidencia, Lighthouse, seguridad, README, manual, CHANGELOG, Dockerfile, v1.0.0   | `build` sin warnings; suite 100% verde; checklist sin fallos abiertos; ninguna fila "parcial" sin backlog                       | Pendiente  |
 
 ## Matriz paso ↔ casos de uso
@@ -80,7 +80,7 @@ Se actualiza al cerrar cada paso. Estados: **Pendiente** → **Engine** (lógica
 | UC-01 | Crear proyecto                    | Completado | 5 · 6          | tarjetas y diálogo en `/projects`; e2e                                                                                      |
 | UC-02 | Duplicar proyecto                 | Completado | 5 · 6          | botón en la tarjeta                                                                                                         |
 | UC-03 | Archivar y restaurar proyecto     | Completado | 5 · 6          | botón en la tarjeta; filtro "Mostrar archivados"                                                                            |
-| UC-04 | Calendario laboral y feriados     | API        | 2 · 4 · 5 · 10 | `GET/PATCH /api/projects/:id/calendar` reprograma                                                                           |
+| UC-04 | Calendario laboral y feriados     | Completado | 2 · 4 · 5 · 10 | Configuración: días hábiles, horas/día y feriados por proyecto, con carga de los feriados de Chile disponibles              |
 | UC-05 | Crear tarea, subtarea e hito      | Completado | 5 · 6          | barra y teclado (Insert, Shift+Insert); e2e                                                                                 |
 | UC-06 | Editar campos de una tarea        | Completado | 5 · 6          | edición inline y panel de detalle                                                                                           |
 | UC-07 | Indentar, desindentar y reordenar | Completado | 2 · 5 · 6      | Tab/Shift+Tab, subir/bajar; e2e WBS 1, 1.1, 1.2                                                                             |
@@ -108,10 +108,10 @@ Se actualiza al cerrar cada paso. Estados: **Pendiente** → **Engine** (lógica
 | UC-29 | Importar Excel/CSV                | Completado | 9              | plantilla descargable, previsualización con errores por fila, destinos nuevo/agregar/reemplazar; e2e importa un CSV         |
 | UC-30 | Importar MS Project XML           | Completado | 9              | MSPDI: jerarquía, 13 vínculos con tipo y desfase, recursos y asignaciones; integración sin pérdida de dependencias          |
 | UC-31 | Iniciar sesión                    | Completado | 4              | Auth.js credenciales, middleware, e2e de login                                                                              |
-| UC-32 | Roles por proyecto                | Pendiente  | 10             |                                                                                                                             |
-| UC-33 | Compartir por enlace              | Pendiente  | 10             |                                                                                                                             |
-| UC-34 | Colaboración simultánea           | API        | 5 · 10         | `GET /api/projects/:id/changes?since=`                                                                                      |
-| UC-35 | Comentarios y menciones           | Pendiente  | 10             |                                                                                                                             |
+| UC-32 | Roles por proyecto                | Completado | 10             | `ProjectMember` con diálogo de miembros; la API exige el rol y la interfaz deshabilita lo que un lector no puede hacer      |
+| UC-33 | Compartir por enlace              | Completado | 10             | token revocable con vencimiento opcional; `/share/[token]` es público, de solo lectura y sin datos de personas              |
+| UC-34 | Colaboración simultánea           | Completado | 5 · 10         | polling de 2 s con aviso de los cambios ajenos y recarga; se detiene con la pestaña oculta o un comando en vuelo            |
+| UC-35 | Comentarios y menciones           | Completado | 10             | panel en el detalle de la tarea con @menciones sobre los miembros y adaptador de correo (consola en desarrollo)             |
 | UC-36 | Historial de cambios              | Completado | 5 · 8          | vista Auditoría con filtros por tarea, usuario y fecha                                                                      |
-| UC-37 | Configuración global              | API        | 8 · 10         | `/api/settings` (UF, moneda, formato, logo); UI en Paso 10                                                                  |
+| UC-37 | Configuración global              | Completado | 8 · 10         | página Configuración con valor UF, moneda, formato de fechas y logo de las exportaciones                                    |
 | UC-38 | Costos                            | Completado | 3 · 8          | costo planificado/consumido en el dashboard con conversión UF/CLP; adaptador UfProvider                                     |

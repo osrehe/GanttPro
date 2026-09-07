@@ -25,11 +25,12 @@ cierre. Zona horaria: America/Santiago. El commit de cada paso se obtiene con `g
 | 7    | Gantt interactivo (SVG, arrastres, dependencias, rendimiento)           | 2026-09-07 09:32 | 2026-09-07 10:00 | 28 min              | ~115 k        | 0          | `paso-7`  |
 | 8    | Seguimiento, líneas base, histograma y nivelación, dashboard, auditoría | 2026-09-07 10:02 | 2026-09-07 14:01 | 239 min (con pausa) | ~235 k        | 0          | `paso-8`  |
 | 9    | Exportación (Excel, PDF, PNG) e importación (Excel/CSV, MS Project)     | 2026-09-07 14:05 | 2026-09-07 14:50 | 45 min              | ~295 k        | 2 (~534 k) | `paso-9`  |
+| 10   | Roles, enlaces de solo lectura, colaboración, comentarios y pulido      | 2026-09-07 14:52 | 2026-09-07 20:55 | 78 min (con pausa)  | ~130 k        | 2 (~863 k) | `paso-10` |
 
 ## Totales
 
-| Concepto          | Valor                                                  |
-| ----------------- | ------------------------------------------------------ |
-| Tiempo acumulado  | 474 min                                                |
-| Tokens acumulados | ~1.336 k en la sesión principal + ~999 k en subagentes |
-| Pasos completados | 10 de 12                                               |
+| Concepto          | Valor                                                    |
+| ----------------- | -------------------------------------------------------- |
+| Tiempo acumulado  | 552 min                                                  |
+| Tokens acumulados | ~1.466 k en la sesión principal + ~1.862 k en subagentes |
+| Pasos completados | 11 de 12                                                 |

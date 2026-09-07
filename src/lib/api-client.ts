@@ -4,11 +4,14 @@ import type {
   AuditLogDto,
   BaselineDto,
   CalendarDto,
+  CommentDto,
   DependencyDto,
+  MemberDto,
   ProjectDto,
   ProjectFullDto,
   ProjectSummaryDto,
   ResourceDto,
+  ShareLinkDto,
   TaskDto,
   TaskMutationResult,
 } from "@/lib/dto";
@@ -16,7 +19,10 @@ import type { ImportRequestInput } from "@/lib/import/schema";
 import type { ImportPreview, ImportResult } from "@/lib/import/types";
 import type { SettingsDto } from "@/lib/services/settings";
 import type {
+  AddMemberInput,
   BulkTaskUpdateInput,
+  CreateCommentInput,
+  CreateShareLinkInput,
   ChangesQuery,
   CreateAssignmentInput,
   CreateBaselineInput,
@@ -28,6 +34,8 @@ import type {
   PatchTaskInput,
   UpdateAssignmentInput,
   UpdateCalendarInput,
+  UpdateCommentInput,
+  UpdateMemberInput,
   UpdateDependencyInput,
   UpdateProjectInput,
   UpdateResourceInput,
@@ -149,6 +157,28 @@ export const api = {
   settings: {
     get: () => get<SettingsDto>("/api/settings"),
     update: (input: UpdateSettingsInput) => patch<SettingsDto>("/api/settings", input),
+  },
+  members: {
+    list: (projectId: string) => get<MemberDto[]>(`/api/projects/${projectId}/members`),
+    add: (projectId: string, input: AddMemberInput) =>
+      post<MemberDto>(`/api/projects/${projectId}/members`, input),
+    update: (memberId: string, input: UpdateMemberInput) =>
+      patch<MemberDto>(`/api/members/${memberId}`, input),
+    remove: (memberId: string) => del<{ deleted: true }>(`/api/members/${memberId}`),
+  },
+  shareLinks: {
+    list: (projectId: string) => get<ShareLinkDto[]>(`/api/projects/${projectId}/share-links`),
+    create: (projectId: string, input: CreateShareLinkInput = {}) =>
+      post<ShareLinkDto>(`/api/projects/${projectId}/share-links`, input),
+    revoke: (id: string) => del<{ revoked: true }>(`/api/share-links/${id}`),
+  },
+  comments: {
+    list: (taskId: string) => get<CommentDto[]>(`/api/tasks/${taskId}/comments`),
+    create: (taskId: string, input: CreateCommentInput) =>
+      post<CommentDto>(`/api/tasks/${taskId}/comments`, input),
+    update: (id: string, input: UpdateCommentInput) =>
+      patch<CommentDto>(`/api/comments/${id}`, input),
+    remove: (id: string) => del<{ deleted: true }>(`/api/comments/${id}`),
   },
   export: {
     /** Descarga directa (GET) del libro Excel; `gantt` controla la granularidad de la hoja Gantt. */

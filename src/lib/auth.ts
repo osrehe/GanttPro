@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { z } from "zod";
 import { authConfig } from "./auth.config";
 import { prisma } from "./db";
@@ -10,30 +11,67 @@ const credentialsSchema = z.object({
   password: z.string().min(1),
 });
 
+/** Google solo se ofrece si están configuradas las credenciales (UC-31, opcional). */
+export const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
+
+const providers: NextAuthConfig["providers"] = [
+  Credentials({
+    name: "Credenciales",
+    credentials: {
+      email: { label: "Correo", type: "email" },
+      password: { label: "Contraseña", type: "password" },
+    },
+    async authorize(raw) {
+      const parsed = credentialsSchema.safeParse(raw);
+      if (!parsed.success) return null;
+      const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+      if (!user?.passwordHash) return null;
+      const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
+      if (!ok) return null;
+      return { id: user.id, email: user.email, name: user.name, image: user.image };
+    },
+  }),
+];
+
+if (googleEnabled) {
+  providers.push(
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
+  );
+}
+
 /**
- * Auth.js con proveedor de credenciales (ADR-005). Google se agrega en el Paso 10.
- * La sesión es JWT; el id del usuario viaja en el token (ver callbacks en `auth.config.ts`).
+ * Auth.js con credenciales y, opcionalmente, Google (ADR-005). La sesión es JWT y el id del
+ * usuario viaja en el token. Con Google no se crean cuentas: el correo debe existir en `User`.
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  providers: [
-    Credentials({
-      name: "Credenciales",
-      credentials: {
-        email: { label: "Correo", type: "email" },
-        password: { label: "Contraseña", type: "password" },
-      },
-      async authorize(raw) {
-        const parsed = credentialsSchema.safeParse(raw);
-        if (!parsed.success) return null;
-        const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-        if (!user?.passwordHash) return null;
-        const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
-        if (!ok) return null;
-        return { id: user.id, email: user.email, name: user.name, image: user.image };
-      },
-    }),
-  ],
+  providers,
+  callbacks: {
+    ...authConfig.callbacks,
+    async signIn({ user, account }) {
+      if (account?.provider !== "google") return true;
+      const email = user.email?.trim().toLowerCase();
+      const existing = email
+        ? await prisma.user.findUnique({ where: { email }, select: { id: true } })
+        : null;
+      // Sin cuenta previa se rechaza el ingreso; el login muestra el motivo en español.
+      return existing ? true : "/login?error=cuenta-no-registrada";
+    },
+    async jwt({ token, user, account }) {
+      if (user?.id) token.id = user.id;
+      if (account?.provider === "google" && typeof token.email === "string") {
+        const existing = await prisma.user.findUnique({
+          where: { email: token.email.trim().toLowerCase() },
+          select: { id: true },
+        });
+        if (existing) token.id = existing.id;
+      }
+      return token;
+    },
+  },
 });
 
 export interface SessionUser {

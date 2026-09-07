@@ -34,6 +34,8 @@ export interface ProjectStore {
   members: MemberDto[];
   baselines: BaselineDto[];
   loaded: boolean;
+  /** Usuario de la sesión: distingue los cambios propios de los ajenos en el polling (UC-34). */
+  currentUserId: string | null;
 
   // Estado de la interfaz
   selectedTaskId: string | null;
@@ -58,6 +60,7 @@ export interface ProjectStore {
   removeAssignment(id: string): void;
   setBaselines(baselines: BaselineDto[]): void;
   setProject(project: ProjectDto): void;
+  setCurrentUserId(userId: string | null): void;
 
   // Interfaz
   select(taskId: string | null): void;
@@ -116,6 +119,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
     members: [],
     baselines: [],
     loaded: false,
+    currentUserId: null,
     selectedTaskId: null,
     detailTaskId: null,
     collapsed: {},
@@ -248,6 +252,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
 
     setProject(project) {
       set({ project });
+    },
+
+    setCurrentUserId(userId) {
+      if (get().currentUserId !== userId) set({ currentUserId: userId });
     },
 
     select(taskId) {

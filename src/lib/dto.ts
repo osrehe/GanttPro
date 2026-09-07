@@ -4,11 +4,13 @@ import type {
   Baseline,
   BaselineTask,
   Calendar,
+  Comment,
   Dependency,
   Holiday,
   Project,
   ProjectMember,
   Resource,
+  ShareLink,
   Task,
 } from "@prisma/client";
 import { fromDbDate, fromDbDateOrNull } from "./dates";
@@ -306,4 +308,62 @@ export interface TaskMutationResult {
   affected: TaskDto[];
   /** Ids eliminados (solo en DELETE). */
   deletedIds?: string[];
+}
+
+/** Enlace de solo lectura de un proyecto (UC-33). */
+export interface ShareLinkDto {
+  id: string;
+  projectId: string;
+  token: string;
+  /** Ruta relativa que se copia al portapapeles: `/share/<token>`. */
+  path: string;
+  createdById: string;
+  createdAt: string;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  /** Falso si está revocado o vencido. */
+  isActive: boolean;
+}
+
+export function toShareLinkDto(link: ShareLink, now: Date = new Date()): ShareLinkDto {
+  const expired = link.expiresAt !== null && link.expiresAt.getTime() <= now.getTime();
+  return {
+    id: link.id,
+    projectId: link.projectId,
+    token: link.token,
+    path: `/share/${link.token}`,
+    createdById: link.createdById,
+    createdAt: link.createdAt.toISOString(),
+    expiresAt: fromDbDateOrNull(link.expiresAt),
+    revokedAt: link.revokedAt?.toISOString() ?? null,
+    isActive: link.revokedAt === null && !expired,
+  };
+}
+
+/** Comentario de una tarea con sus menciones resueltas (UC-35). */
+export interface CommentDto {
+  id: string;
+  taskId: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  mentions: Array<{ id: string; name: string }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function toCommentDto(
+  comment: Comment & { author: { name: string } },
+  usersById: ReadonlyMap<string, string>,
+): CommentDto {
+  return {
+    id: comment.id,
+    taskId: comment.taskId,
+    authorId: comment.authorId,
+    authorName: comment.author.name,
+    body: comment.body,
+    mentions: comment.mentionIds.map((id) => ({ id, name: usersById.get(id) ?? "usuario" })),
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+  };
 }
