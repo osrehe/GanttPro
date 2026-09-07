@@ -19,6 +19,8 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p packages/engine/tsconfig.json",
     "test": "cross-env TZ=UTC vitest run",
+    "test:unit": "cross-env TZ=UTC vitest run --project engine --project web",
+    "test:integration": "cross-env TZ=UTC vitest run --project integration",
     "test:watch": "cross-env TZ=UTC vitest",
     "test:coverage": "cross-env TZ=UTC vitest run --coverage",
     "test:e2e": "playwright test",

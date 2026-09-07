@@ -53,11 +53,15 @@ export async function recordAudit(db: DbClient, entry: AuditEntry): Promise<void
 export async function withAudit<T>(
   mutate: (tx: Prisma.TransactionClient) => Promise<{ result: T; audit: readonly AuditEntry[] }>,
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
-    const { result, audit } = await mutate(tx);
-    for (const entry of audit) await recordAudit(tx, entry);
-    return result;
-  });
+  return prisma.$transaction(
+    async (tx) => {
+      const { result, audit } = await mutate(tx);
+      for (const entry of audit) await recordAudit(tx, entry);
+      return result;
+    },
+    // Un proyecto grande puede actualizar cientos de filas al reprogramar.
+    { timeout: 30_000, maxWait: 10_000 },
+  );
 }
 
 /** Genera un identificador de operación para agrupar entradas relacionadas. */

@@ -1,6 +1,11 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
+const alias = {
+  "@": path.resolve(__dirname, "src"),
+  "@ganttpro/engine": path.resolve(__dirname, "packages/engine/src/index.ts"),
+};
+
 export default defineConfig({
   test: {
     projects: [
@@ -13,16 +18,24 @@ export default defineConfig({
         },
       },
       {
-        resolve: {
-          alias: {
-            "@": path.resolve(__dirname, "src"),
-            "@ganttpro/engine": path.resolve(__dirname, "packages/engine/src/index.ts"),
-          },
-        },
+        resolve: { alias },
         test: {
           name: "web",
           include: ["src/**/*.test.{ts,tsx}"],
+          exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
           environment: "node",
+        },
+      },
+      {
+        // Tests de integración: Route Handlers reales contra la base de datos ganttpro_test.
+        resolve: { alias },
+        test: {
+          name: "integration",
+          include: ["src/**/*.integration.test.ts"],
+          environment: "node",
+          setupFiles: ["./src/test/integration-setup.ts"],
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
         },
       },
     ],

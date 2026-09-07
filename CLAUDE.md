@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 4
-completado** (Prisma + Postgres, autenticación mínima, seeds). El siguiente paso es el Paso 5: API.
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 5
+completado** (API completa con tests de integración). El siguiente paso es el Paso 6: UI base
+(proyectos, tabla WBS, store con undo/redo, recursos).
 
 Fuentes de verdad, en este orden:
 
@@ -42,6 +43,8 @@ npm run format           # Prettier; format:check solo verifica (lo usa CI)
 npm run typecheck        # tsc para la app (tsconfig raíz) y para packages/engine
 npm run test             # Vitest, proyectos "engine" y "web", con TZ=UTC
 npm run test:coverage    # cobertura del engine con umbral 90 %
+npm run test:unit        # solo engine + web (sin base de datos)
+npm run test:integration # Route Handlers reales contra ganttpro_test (trunca sus tablas)
 npm run test:e2e         # Playwright (Chromium). Requiere BD sembrada; levanta o reutiliza `npm run dev`
 docker compose up -d     # Postgres 16: BD ganttpro y ganttpro_test. Puerto host: POSTGRES_PORT en .env
 npm run db:migrate       # prisma migrate dev (crea/aplica migraciones en desarrollo)
@@ -104,6 +107,18 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   recibe 401 `UNAUTHORIZED`). `src/lib/auth.ts` agrega el proveedor de credenciales con Prisma y
   bcrypt y expone `auth`, `signIn`, `signOut`, `getSessionUser()` y `hashPassword()`. Roles por
   proyecto en `ProjectMember` (se aplican en el Paso 10).
+- **API** (`src/app/api`, ADR-009): Route Handlers delgados envueltos en `handle()` de
+  `src/lib/api/response.ts` (envolvente `{ data }` / `{ error: { code, message, details } }` y mapeo
+  de `ApiError`, `EngineError`, Zod y Prisma). Acceso con `requireProjectAccess(projectId, minRole)`
+  y `requireTaskAccess` de `src/lib/api/access.ts` (403 sin membresía; archivado = solo lectura).
+  Esquemas Zod compartidos en `src/lib/schemas`, DTOs con fechas ISO en `src/lib/dto.ts`, lógica en
+  `src/lib/services/*` (`rescheduleProject` ejecuta el engine en servidor y persiste solo lo que
+  cambió; toda mutación devuelve `affected`). Cliente tipado en `src/lib/api-client.ts`. Endpoints:
+  `/api/projects` (+ `/:id`, `/full`, `/duplicate`, `/calendar`, `/tasks`, `/tasks/bulk`,
+  `/dependencies`, `/resources`, `/baselines`, `/changes`), `/api/tasks/:id` (+ `/move`,
+  `/assignments`), `/api/dependencies/:id`, `/api/resources/:id`, `/api/assignments/:id`,
+  `/api/baselines/:id`. Tests de integración en `src/app/api/api.integration.test.ts` (mockean
+  `@/lib/auth` con `vi.mock`, truncan las tablas de `ganttpro_test`).
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`
