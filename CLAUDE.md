@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 5
-completado** (API completa con tests de integración). El siguiente paso es el Paso 6: UI base
-(proyectos, tabla WBS, store con undo/redo, recursos).
+exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 6
+completado** (interfaz base: proyectos, tabla WBS con undo/redo, recursos). El siguiente paso es el
+Paso 7: Gantt interactivo.
 
 Fuentes de verdad, en este orden:
 
@@ -76,8 +76,8 @@ Usuarios del seed: `admin@ganttpro.local` (ADMIN), `editor@ganttpro.local` (EDIT
 Next.js 15.5 (App Router, React 19) · TypeScript estricto con `noUncheckedIndexedAccess` · Tailwind v4 ·
 shadcn/ui (estilo `radix-nova`, base `radix-ui`, iconos `lucide-react`) · Prisma 6 + PostgreSQL 16 ·
 Auth.js (`next-auth@5` beta, credenciales, sesión JWT) · zod 4 · bcryptjs · Vitest 3 · Playwright ·
-Prettier con plugin de Tailwind · ESLint 9 flat config. Pendientes según el plan: Zustand, TanStack
-Query/Table, exceljs, Puppeteer, Recharts.
+Prettier con plugin de Tailwind · ESLint 9 flat config. Zustand · TanStack Query · sonner · react-markdown. Pendientes según el plan: exceljs, Puppeteer,
+Recharts.
 
 Entorno: Windows 11 + PowerShell. Todo script npm debe funcionar en PowerShell (`cross-env`, `rimraf`;
 nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
@@ -119,14 +119,32 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   `/assignments`), `/api/dependencies/:id`, `/api/resources/:id`, `/api/assignments/:id`,
   `/api/baselines/:id`. Tests de integración en `src/app/api/api.integration.test.ts` (mockean
   `@/lib/auth` con `vi.mock`, truncan las tablas de `ganttpro_test`).
+- **Interfaz (Paso 6)**: rutas bajo `src/app/(app)` con `AppShell` (`src/components/shell/app-shell.tsx`:
+  sidebar, header con selector de vista Tabla/Gantt/Recursos, deshacer/rehacer) y `Providers`
+  (`src/app/providers.tsx`: TanStack Query, `TooltipProvider`, `Toaster` de sonner; todo `Tooltip` lo
+  necesita). `/projects` lista tarjetas; `/projects/:id/{table,gantt,resources}` cargan el proyecto
+  completo con `ProjectLoader` (`api.projects.full` → `hydrate`). **Un único store Zustand**
+  (`src/stores/project-store.ts`) guarda datos y estado de UI (selección, colapsados, resaltado de 1 s
+  con `highlight`); tabla y Gantt derivan de él (`visibleTasks`, `sortByWbs`). **Toda mutación es un
+  `Command`** (`src/stores/commands.ts`) ejecutado por `CommandHistory` (`src/stores/history.ts`,
+  patrón command con alias de ids para rehacer creaciones; test de 20 operaciones). Los comandos
+  llaman a `api.*`, aplican `affected` con `applyTaskResult` y saben deshacerse (borrar ↔ recrear el
+  subárbol, mover ↔ `bulk` con las posiciones previas). Las operaciones sin historial (CRUD de
+  recursos, proyectos) usan `useMutation` directo. La columna Predecesoras usa
+  `src/lib/predecessors.ts` (`parsePredecessors`, `formatPredecessors`, `diffPredecessors`). La tabla
+  (`src/components/table/task-table.tsx`) es un grid propio con teclado: flechas, Enter/F2 o
+  escribir para editar, Tab/Shift+Tab indentar, Insert nueva tarea (Shift: subtarea), Supr borrar,
+  Espacio detalles; Ctrl+Z/Y globales en `useShortcuts`. Al editar escribiendo no se selecciona el
+  contenido previo (`selectAll` solo con Enter/F2). Nunca llames a acciones del store dentro de un
+  actualizador de `setState`.
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`
   (tests `src/**/*.test.ts(x)`). Los Route Handlers se prueban importando la función exportada y
   llamándola con un `Request`, como en `src/app/health/route.test.ts`. Los e2e viven en `e2e/`.
-- **Rutas de Next**: `src/app`. `/health` público, `/login` con `login-form.tsx` cliente. Las páginas
-  de la app irán bajo `src/app/(app)`, la API bajo `src/app/api`, la impresión PDF bajo
-  `src/app/print/gantt`. Feriados de Chile por año en `src/lib/holidays/cl-AAAA.json`.
+- **Rutas de Next**: `src/app`. `/health` público, `/login` con `login-form.tsx` cliente, páginas de la
+  app bajo `src/app/(app)` (la raíz redirige a `/projects`), API bajo `src/app/api`, impresión PDF
+  (Paso 9) bajo `src/app/print/gantt`. Feriados de Chile por año en `src/lib/holidays/cl-AAAA.json`.
 - **shadcn/ui**: componentes en `src/components/ui`, helper `cn` en `src/lib/utils.ts`. Agregar con
   `npx shadcn@latest add <componente>`. Fuentes como variables CSS `--font-sans` y `--font-geist-mono`.
 

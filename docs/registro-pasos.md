@@ -11,21 +11,22 @@ se anotan aparte cuando se usan.
 **Cómo se mide el tiempo.** Hora de inicio: primer mensaje del paso. Hora de fin: commit de
 cierre. Zona horaria: America/Santiago. El commit de cada paso se obtiene con `git rev-parse <tag>`.
 
-| Paso | Descripción                                           | Inicio           | Fin              | Duración           | Tokens aprox. | Subagentes | Tag       |
-| ---- | ----------------------------------------------------- | ---------------- | ---------------- | ------------------ | ------------- | ---------- | --------- |
-| —    | Análisis inicial y CLAUDE.md v0                       | 2026-09-06 22:24 | 2026-09-06 22:35 | 11 min             | ~58 k         | 0          | —         |
-| —    | Revisión del plan (v1 → v2)                           | 2026-09-06 22:35 | 2026-09-06 22:57 | 22 min             | ~19 k         | 0          | `plan-v2` |
-| 0    | Bootstrap                                             | 2026-09-06 22:57 | 2026-09-06 23:12 | 15 min             | ~96 k         | 0          | `paso-0`  |
-| 1    | Especificación y ADRs                                 | 2026-09-06 23:39 | 2026-09-06 23:52 | 13 min             | ~40 k         | 2 (~465 k) | `paso-1`  |
-| 2    | Engine: calendario, WBS, scheduling y ciclos          | 2026-09-06 23:57 | 2026-09-07 00:10 | 13 min             | ~73 k         | 0          | `paso-2`  |
-| 3    | Engine: CPM, recursos, línea base y layout            | 2026-09-07 00:12 | 2026-09-07 00:22 | 10 min             | ~65 k         | 0          | `paso-3`  |
-| 4    | Datos (Prisma), autenticación mínima y seeds          | 2026-09-07 00:23 | 2026-09-07 00:40 | 17 min             | ~100 k        | 0          | `paso-4`  |
-| 5    | API (Route Handlers, servicios, tests de integración) | 2026-09-07 00:41 | 2026-09-07 09:01 | 30 min (con pausa) | ~90 k         | 0          | `paso-5`  |
+| Paso | Descripción                                                | Inicio           | Fin              | Duración           | Tokens aprox. | Subagentes | Tag       |
+| ---- | ---------------------------------------------------------- | ---------------- | ---------------- | ------------------ | ------------- | ---------- | --------- |
+| —    | Análisis inicial y CLAUDE.md v0                            | 2026-09-06 22:24 | 2026-09-06 22:35 | 11 min             | ~58 k         | 0          | —         |
+| —    | Revisión del plan (v1 → v2)                                | 2026-09-06 22:35 | 2026-09-06 22:57 | 22 min             | ~19 k         | 0          | `plan-v2` |
+| 0    | Bootstrap                                                  | 2026-09-06 22:57 | 2026-09-06 23:12 | 15 min             | ~96 k         | 0          | `paso-0`  |
+| 1    | Especificación y ADRs                                      | 2026-09-06 23:39 | 2026-09-06 23:52 | 13 min             | ~40 k         | 2 (~465 k) | `paso-1`  |
+| 2    | Engine: calendario, WBS, scheduling y ciclos               | 2026-09-06 23:57 | 2026-09-07 00:10 | 13 min             | ~73 k         | 0          | `paso-2`  |
+| 3    | Engine: CPM, recursos, línea base y layout                 | 2026-09-07 00:12 | 2026-09-07 00:22 | 10 min             | ~65 k         | 0          | `paso-3`  |
+| 4    | Datos (Prisma), autenticación mínima y seeds               | 2026-09-07 00:23 | 2026-09-07 00:40 | 17 min             | ~100 k        | 0          | `paso-4`  |
+| 5    | API (Route Handlers, servicios, tests de integración)      | 2026-09-07 00:41 | 2026-09-07 09:01 | 30 min (con pausa) | ~90 k         | 0          | `paso-5`  |
+| 6    | UI base (shell, proyectos, tabla WBS, undo/redo, recursos) | 2026-09-07 09:25 | 2026-09-07 09:32 | 7 min              | ~150 k        | 0          | `paso-6`  |
 
 ## Totales
 
 | Concepto          | Valor                                                |
 | ----------------- | ---------------------------------------------------- |
-| Tiempo acumulado  | 131 min                                              |
-| Tokens acumulados | ~541 k en la sesión principal + ~465 k en subagentes |
-| Pasos completados | 6 de 12                                              |
+| Tiempo acumulado  | 138 min                                              |
+| Tokens acumulados | ~691 k en la sesión principal + ~465 k en subagentes |
+| Pasos completados | 7 de 12                                              |
