@@ -4,6 +4,49 @@ Todos los cambios relevantes de GanttPro. El formato sigue
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.2.0] — 2026-09-08
+
+### Cambiado
+
+**Identidad visual.** Paleta morado y celeste en OKLCH, con el mismo matiz en el tema claro y en el
+oscuro, tipografía Plus Jakarta Sans para la interfaz y JetBrains Mono para códigos y cifras. La
+carta Gantt, los gráficos, la exportación PNG, la ruta de impresión y el libro Excel comparten esa
+paleta: morado para el plan, celeste para lo terminado, rosa para la ruta crítica.
+
+**Rendimiento.** Medido sobre el proyecto de 1.110 tareas contra el build de producción:
+
+| Medición                                 | Antes    | Después |
+| ---------------------------------------- | -------- | ------- |
+| Tecla de navegación en la tabla          | 97 ms    | 7 ms    |
+| Nodos del documento en la tabla          | 28.186   | 926     |
+| Editar una duración de punta a punta     | 535 ms   | 120 ms  |
+| Reprogramación que reescribe 1.110 filas | 2.504 ms | 507 ms  |
+| JavaScript inicial del dashboard         | 295 kB   | 183 kB  |
+
+La vista Tabla dibuja solo las filas visibles, la reprogramación escribe todas las tareas afectadas
+en una sola sentencia, el sondeo de colaboración solo recarga el proyecto cuando el cambio ajeno
+toca el plan, y Recharts y los diálogos de exportación e importación se cargan al abrirlos.
+
+**Tabla de ancho fijo.** Cada columna tiene su ancho y las celdas ocupan una línea, con
+desplazamiento horizontal cuando no caben: antes una fila con varios recursos ocupaba el triple que
+las demás.
+
+### Añadido
+
+- Capturas de la documentación en `docs/capturas/`, regenerables con `npm run capturas` desde el
+  proyecto de demostración.
+
+### Corregido
+
+- Las variables de fuente vivían en `<html>` y `next-themes` reescribe esa clase al aplicar el tema:
+  la aplicación caía a la fuente por defecto del navegador al entrar a cualquier vista.
+- Los gráficos, al cargarse bajo demanda, se montaban después del layout y su contenedor los medía
+  en cero: la curva S salía en blanco.
+- El sondeo de cambios recargaba el proyecto mientras alguien escribía en una celda y le borraba lo
+  tecleado.
+- Las barras de avance de las tarjetas no tenían nombre accesible y el listado de proyectos no
+  declaraba título de página.
+
 ## [1.1.0] — 2026-09-08
 
 ### Añadido

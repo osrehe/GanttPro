@@ -39,7 +39,8 @@
     "test:e2e:qa": "cross-env E2E_QA=1 playwright test e2e/qa-checklist.spec.ts --project=chromium",
     "lighthouse": "node scripts/lighthouse.mjs",
     "docker:build": "docker build -t ganttpro:latest .",
-    "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build"
+    "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build",
+    "capturas": "node scripts/capturas.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [

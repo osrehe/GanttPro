@@ -29,10 +29,20 @@ cierre. Zona horaria: America/Santiago. El commit de cada paso se obtiene con `g
 | 11   | QA final, seguridad, imagen de producción, documentación y entrega      | 2026-09-07 21:00 | 2026-09-08 01:35 | 275 min (con pausa) | ~200 k        | 2 (~1.100 k) | `v1.0.0`  |
 | 12   | Eliminar proyectos (UC-39): modelo, servicio, API, diálogo y pruebas    | 2026-09-08 01:45 | 2026-09-08 02:05 | 20 min              | ~55 k         | 0            | `paso-12` |
 
+## Trabajo posterior al plan
+
+Encargos del usuario una vez entregada la versión 1.0.0. Se miden igual que los pasos.
+
+| Trabajo                                                   | Inicio           | Fin              | Duración | Tokens aprox. | Subagentes | Tag      |
+| --------------------------------------------------------- | ---------------- | ---------------- | -------- | ------------- | ---------- | -------- |
+| Eliminar proyectos (UC-39)                                | 2026-09-08 01:45 | 2026-09-08 02:05 | 20 min   | ~55 k         | 0          | `v1.1.0` |
+| Revisión de rendimiento y sus cuatro correcciones         | 2026-09-08 02:10 | 2026-09-08 03:30 | 80 min   | ~85 k         | 0          | —        |
+| Rediseño (paleta morado y celeste, tipografía) y capturas | 2026-09-08 03:35 | 2026-09-08 05:10 | 95 min   | ~95 k         | 0          | `v1.2.0` |
+
 ## Totales
 
 | Concepto          | Valor                                                                          |
 | ----------------- | ------------------------------------------------------------------------------ |
-| Tiempo acumulado  | 847 min                                                                        |
-| Tokens acumulados | ~1.721 k en la sesión principal + ~2.962 k en subagentes                       |
+| Tiempo acumulado  | 1.042 min (847 del plan y 195 de encargos posteriores)                         |
+| Tokens acumulados | ~1.956 k en la sesión principal + ~2.962 k en subagentes                       |
 | Pasos completados | 13: los 12 del plan original (0–11) y el Paso 12 que pidió el usuario al final |

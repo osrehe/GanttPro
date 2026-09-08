@@ -31,14 +31,23 @@ o en pesos y el calendario laboral trae los feriados de Chile.
 
 ## Capturas
 
-Las capturas se generan con la suite de verificación del Paso 11 y viven en `docs/qa/evidencia/`.
+Del proyecto de demostración que crea `npm run db:seed`. Se regeneran con `npm run capturas`
+(necesita la aplicación corriendo) y viven en [`docs/capturas/`](docs/capturas/).
 
-| Vista         | Captura                                                                |
-| ------------- | ---------------------------------------------------------------------- |
-| Tabla WBS     | [`qa-06-tabla-wbs.png`](docs/qa/evidencia/qa-06-tabla-wbs.png)         |
-| Carta Gantt   | [`qa-12-gantt.png`](docs/qa/evidencia/qa-12-gantt.png)                 |
-| Dashboard     | [`qa-19-dashboard.png`](docs/qa/evidencia/qa-19-dashboard.png)         |
-| Configuración | [`qa-27-configuracion.png`](docs/qa/evidencia/qa-27-configuracion.png) |
+| Vista                      | Captura                                                |
+| -------------------------- | ------------------------------------------------------ |
+| Tabla WBS                  | [`tabla-wbs.png`](docs/capturas/tabla-wbs.png)         |
+| Carta Gantt                | [`gantt.png`](docs/capturas/gantt.png)                 |
+| Carta Gantt en tema oscuro | [`gantt-oscuro.png`](docs/capturas/gantt-oscuro.png)   |
+| Dashboard y curva S        | [`dashboard.png`](docs/capturas/dashboard.png)         |
+| Recursos e histograma      | [`recursos.png`](docs/capturas/recursos.png)           |
+| Configuración              | [`configuracion.png`](docs/capturas/configuracion.png) |
+| Listado de proyectos       | [`proyectos.png`](docs/capturas/proyectos.png)         |
+
+![Carta Gantt del proyecto de demostración](docs/capturas/gantt.png)
+
+Las imágenes de [`docs/qa/evidencia/`](docs/qa/evidencia/) son otra cosa: la evidencia de las 30
+verificaciones del checklist de QA, una por fila de [`docs/qa/checklist.md`](docs/qa/checklist.md).
 
 ## Requisitos
 
@@ -133,13 +142,18 @@ definida en `SEED_PASSWORD` (por defecto `GanttPro2026!`):
 | `npm run test:unit`        | Solo motor y web, sin base de datos                              |
 | `npm run test:integration` | Route Handlers reales contra `ganttpro_test`                     |
 | `npm run test:coverage`    | Cobertura del motor de planificación (umbral 90 %)               |
-| `npm run test:e2e`         | Playwright sobre Chromium                                        |
+| `npm run test:e2e`         | Playwright: Chromium y, en los flujos principales, Firefox       |
+| `npm run test:e2e:qa`      | Recorrido de las 30 verificaciones con capturas de evidencia     |
 | `npm run test:e2e:perf`    | Prueba de rendimiento del Gantt con 1.110 tareas                 |
+| `npm run lighthouse`       | Lighthouse sobre el Gantt (requiere `npm run start`)             |
+| `npm run capturas`         | Regenera las capturas del README desde el proyecto sembrado      |
 | `npm run db:migrate`       | Crea y aplica migraciones en desarrollo                          |
 | `npm run db:seed`          | Proyecto de demostración y usuarios de ejemplo                   |
 | `npm run db:seed:perf`     | Proyecto sintético de 1.110 tareas para la prueba de rendimiento |
 | `npm run db:reset`         | Borra la base, migra y vuelve a sembrar                          |
 | `npm run db:studio`        | Prisma Studio para inspeccionar la base                          |
+| `npm run docker:build`     | Imagen de producción con Chromium para el PDF                    |
+| `npm run docker:prod`      | Levanta base de datos y aplicación con `docker-compose.prod.yml` |
 | `npm run clean`            | Elimina `.next` y las carpetas de cobertura                      |
 
 ## Pruebas
