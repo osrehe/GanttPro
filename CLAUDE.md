@@ -6,9 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construyó siguiendo un plan de 12 pasos (0–11). Estado actual: **plan
-terminado**: los 12 pasos (0–11) están cerrados y la versión 1.0.0 está etiquetada. Cualquier trabajo
-nuevo parte del backlog (`docs/backlog.md`), no del plan.
+exportación Excel/PDF). Se construyó siguiendo un plan de 12 pasos (0–11). Estado actual: **versión
+1.0.0 entregada**: los pasos 0–11 del plan están cerrados. Hay un Paso 12 planificado a pedido del
+usuario, todavía sin implementar: eliminar proyectos (UC-39). El resto del trabajo nuevo sale del
+backlog (`docs/backlog.md`).
 
 Fuentes de verdad, en este orden:
 

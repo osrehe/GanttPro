@@ -304,3 +304,21 @@ Criterios de aceptación:
 | Asistente IA: WBS desde descripción, estimación, riesgos | Diferenciador                   |
 | App móvil de solo lectura (Expo)                         | Seguimiento desde terreno       |
 | Integración con Google Calendar / Outlook para hitos     | Visibilidad del equipo          |
+
+---
+
+## PASO 12 — Eliminar proyectos (agregado el 2026-09-08 a pedido del usuario)
+
+```
+1. Modelo: `ProjectDeletion` (id, projectId, projectName, deletedById, deletedAt, taskCount, dependencyCount, resourceCount) con migración; el registro sobrevive al proyecto porque el AuditLog se borra en cascada.
+2. Servicio: `deleteProject(projectId, userId)` cuenta tareas, dependencias y recursos, borra el proyecto y escribe `ProjectDeletion` en una sola transacción.
+3. API: `DELETE /api/projects/:id` exige rol ADMIN (ya lo hace) y devuelve los conteos borrados; funciona también sobre proyectos archivados.
+4. Interfaz: en la tarjeta del proyecto, acción Eliminar (solo administrador) que abre un diálogo con lo que se va a borrar, un enlace para descargar antes el libro Excel y un campo donde hay que escribir el nombre exacto para habilitar el botón.
+5. Tests: integración (borra en cascada, deja el registro, 403 para editor y lector, funciona archivado) y e2e (crear proyecto → eliminarlo escribiendo el nombre → desaparece del listado y su enlace compartido deja de resolver).
+
+Criterios de aceptación:
+- El proyecto y todo lo suyo desaparecen; `GET /api/projects/:id` responde 403.
+- Queda una fila en `ProjectDeletion` con nombre, usuario, fecha y conteos.
+- El botón Eliminar sigue deshabilitado mientras el nombre escrito no coincide exactamente.
+- Un editor recibe 403 y el proyecto sigue existiendo.
+```

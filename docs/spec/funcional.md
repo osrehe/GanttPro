@@ -118,6 +118,40 @@ lista principal. Se puede restaurar.
 - Dado un proyecto archivado, cuando el administrador lo restaura, entonces vuelve a `ACTIVE` y la
   edición queda habilitada.
 
+### UC-39 — Eliminar un proyecto definitivamente
+
+**Actor:** administrador del proyecto · **Rol mínimo:** `ADMIN` · **Paso del plan:** 12
+
+Borra un proyecto y todo lo que cuelga de él. Es irreversible: para quitar un proyecto de la vista
+sin perderlo está archivar (UC-03).
+
+**Reglas:**
+
+- Solo un administrador del proyecto puede eliminarlo. Un editor o un lector reciben `403`.
+- El diálogo exige escribir el nombre exacto del proyecto y muestra qué se va a borrar (tareas,
+  dependencias, recursos, asignaciones, líneas base, comentarios, enlaces compartidos y el historial
+  de cambios). El botón de confirmación está deshabilitado hasta que el nombre coincide.
+- El borrado ocurre en una transacción y arrastra en cascada todo lo del proyecto. Los enlaces
+  compartidos dejan de resolver y muestran "El enlace no está disponible".
+- El `AuditLog` del proyecto desaparece con él, así que la eliminación se anota en
+  `ProjectDeletion`: nombre, quién, cuándo y cuántas tareas, dependencias y recursos tenía. Ese
+  registro no se borra y es lo que permite responder "¿qué pasó con el proyecto X?".
+- Antes de borrar se ofrece descargar el libro Excel del proyecto (UC-26) desde el mismo diálogo,
+  para que quede una copia fuera de la aplicación.
+- Un proyecto archivado también se puede eliminar; no hace falta restaurarlo antes.
+
+**Criterios de aceptación:**
+
+- Dado un proyecto con tareas, cuando el administrador escribe su nombre y confirma, entonces el
+  proyecto desaparece del listado, `GET /api/projects/:id` responde `403` y queda una fila en
+  `ProjectDeletion` con el nombre, el usuario y los conteos.
+- Dado el diálogo abierto, cuando el nombre escrito no coincide exactamente, entonces el botón
+  Eliminar sigue deshabilitado.
+- Dado un proyecto con un enlace de solo lectura activo, cuando se elimina, entonces ese enlace
+  responde con el aviso de enlace no disponible.
+- Dado un editor del proyecto, cuando llama a `DELETE /api/projects/:id`, entonces recibe `403`
+  con código `FORBIDDEN` y el proyecto sigue existiendo.
+
 ### UC-04 — Configurar calendario laboral y feriados
 
 **Actor:** administrador del proyecto · **Rol mínimo:** `ADMIN` · **Paso del plan:** 10 (UI) · engine en Paso 2

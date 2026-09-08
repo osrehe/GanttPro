@@ -184,24 +184,26 @@ test.describe("Checklist de QA (Paso 11)", () => {
   test("11 · deshacer y rehacer devuelven el estado anterior", async ({ page }) => {
     await login(page);
     await page.goto(`/projects/${projectId}/table`);
-    const rows = page.getByTestId("task-row");
-    const before = await rows.count();
+    // Se espera a que la tabla esté cargada antes de tocar el teclado.
+    await expect(page.getByTestId("task-row").first()).toBeVisible();
+    const name = `Tarea temporal ${Date.now()}`;
+    const temporal = page.getByTestId("task-row").filter({ hasText: name });
     // El historial vive en la sesión del navegador: la tarea se crea y se deshace aquí mismo.
     await page.getByTestId("task-grid").focus();
     await page.keyboard.press("Insert");
     const editor = page.getByRole("textbox", { name: "Nombre" });
     await expect(editor).toBeVisible();
-    await editor.fill("Tarea temporal");
+    await editor.fill(name);
     await editor.press("Enter");
-    await expect(rows).toHaveCount(before + 1);
+    await expect(temporal).toHaveCount(1);
     await page.getByTestId("task-grid").focus();
     await page.keyboard.press("Control+z");
-    await expect(rows).toHaveCount(before);
+    await expect(temporal).toHaveCount(0);
     await page.keyboard.press("Control+y");
-    await expect(rows).toHaveCount(before + 1);
-    await page.keyboard.press("Control+z");
-    await expect(rows).toHaveCount(before);
+    await expect(temporal).toHaveCount(1);
     await shot(page, 11, "deshacer-rehacer");
+    await page.keyboard.press("Control+z");
+    await expect(temporal).toHaveCount(0);
   });
 
   test("12 · el Gantt dibuja barras, hitos y la ruta crítica", async ({ page }) => {
@@ -235,7 +237,7 @@ test.describe("Checklist de QA (Paso 11)", () => {
     await page.goto(`/projects/${projectId}/resources`);
     await page.getByTestId("new-resource").click();
     await page.getByLabel("Nombre").fill("Ana Pérez");
-    await page.getByRole("button", { name: "Guardar" }).click();
+    await page.getByRole("button", { name: "Crear" }).click();
     await expect(page.getByTestId("resource-row").filter({ hasText: "Ana Pérez" })).toBeVisible();
     await shot(page, 15, "recurso-creado");
   });
@@ -374,7 +376,7 @@ test.describe("Checklist de QA (Paso 11)", () => {
     await page.goto("/projects");
     await page
       .getByTestId("project-card")
-      .filter({ hasText: projectName })
+      .filter({ has: page.getByRole("link", { name: projectName, exact: true }) })
       .getByTestId("open-members")
       .click();
     await page.getByTestId("create-share-link").click();

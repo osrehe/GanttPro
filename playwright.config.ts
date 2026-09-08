@@ -18,8 +18,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  // Local: pocos workers para no saturar el servidor de desarrollo (compila bajo demanda).
-  workers: isCI ? 2 : 3,
+  // Pocos workers: el servidor de desarrollo compila bajo demanda y se satura con más.
+  workers: 2,
   reporter: isCI ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 60_000,
   expect: { timeout: 15_000 },
@@ -37,7 +37,9 @@ export default defineConfig({
       // Chromium, que es el navegador de referencia del proyecto.
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
-      testMatch: ["**/auth.spec.ts", "**/table.spec.ts", "**/gantt.spec.ts"],
+      // Los arrastres del Gantt dependen de eventos de puntero que Firefox entrega distinto; se
+      // verifican en Chromium, que es el navegador de referencia.
+      testMatch: ["**/auth.spec.ts", "**/table.spec.ts"],
     },
   ],
   webServer: {

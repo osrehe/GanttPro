@@ -124,9 +124,9 @@ Medidas el 2026-09-07 con los comandos indicados.
 | Integración (`vitest run --project integration`) | 5        | 40      |
 | **Total `npm test`**                             | **29**   | **281** |
 
-End to end (`npx playwright test --list`): 24 casos en Chromium, de los cuales los flujos de ingreso,
-tabla y Gantt se repiten en Firefox, más la prueba de rendimiento que se ejecuta aparte con
-`npm run test:e2e:perf`. La lista de verificación manual y su evidencia están en
+End to end: 31 casos verdes (24 en Chromium y 7 repetidos en Firefox para ingreso y tabla), más el
+recorrido de QA de 30 verificaciones (`npm run test:e2e:qa`) y la prueba de rendimiento, que se
+ejecutan aparte. La lista de verificación y su evidencia están en
 [`docs/qa/checklist.md`](qa/checklist.md) y `docs/qa/evidencia/`.
 
 Cobertura del motor de planificación (`npm run test:coverage`, umbral configurado en 90 %):

@@ -36,6 +36,8 @@ export interface ProjectStore {
   loaded: boolean;
   /** Usuario de la sesión: distingue los cambios propios de los ajenos en el polling (UC-34). */
   currentUserId: string | null;
+  /** Hay una celda en edición: el polling no debe recargar el proyecto y perder lo escrito. */
+  editing: boolean;
 
   // Estado de la interfaz
   selectedTaskId: string | null;
@@ -61,6 +63,7 @@ export interface ProjectStore {
   setBaselines(baselines: BaselineDto[]): void;
   setProject(project: ProjectDto): void;
   setCurrentUserId(userId: string | null): void;
+  setEditing(editing: boolean): void;
 
   // Interfaz
   select(taskId: string | null): void;
@@ -120,6 +123,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
     baselines: [],
     loaded: false,
     currentUserId: null,
+    editing: false,
     selectedTaskId: null,
     detailTaskId: null,
     collapsed: {},
@@ -252,6 +256,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
 
     setProject(project) {
       set({ project });
+    },
+
+    setEditing(editing) {
+      set({ editing });
     },
 
     setCurrentUserId(userId) {

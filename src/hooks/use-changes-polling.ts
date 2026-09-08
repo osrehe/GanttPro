@@ -18,13 +18,14 @@ export const POLL_INTERVAL_MS = 1500;
  * Colaboración simultánea: consulta `/changes` cada 2 s, avisa de los cambios ajenos con un toast y
  * recarga el proyecto para que gane la última escritura.
  *
- * El polling se detiene mientras la pestaña está oculta (no tiene sentido avisar a nadie) y
- * mientras hay un comando en vuelo (`busy`), para no pisar una actualización optimista con datos
- * del servidor que aún no la incluyen.
+ * El polling se detiene mientras la pestaña está oculta (no tiene sentido avisar a nadie), mientras
+ * hay un comando en vuelo (`busy`) y mientras hay una celda en edición, para no pisar ni una
+ * actualización optimista ni lo que la persona está escribiendo.
  */
 export function useChangesPolling(projectId: string | null, currentUserId: string | null): void {
   const queryClient = useQueryClient();
   const busy = useProjectStore((s) => s.busy);
+  const editing = useProjectStore((s) => s.editing);
   const loaded = useProjectStore((s) => s.loaded);
   const [visible, setVisible] = useState(true);
   // Solo interesan los cambios ocurridos desde que se abrió el proyecto.
@@ -41,7 +42,9 @@ export function useChangesPolling(projectId: string | null, currentUserId: strin
     cursorRef.current = projectId ? new Date().toISOString() : null;
   }, [projectId]);
 
-  const enabled = Boolean(projectId) && loaded && visible && !busy;
+  // Tampoco se consulta mientras hay una celda abierta: recargar el proyecto la desmontaría y se
+  // perdería lo que la persona está escribiendo.
+  const enabled = Boolean(projectId) && loaded && visible && !busy && !editing;
 
   const query = useQuery({
     queryKey: ["project", projectId, "changes"],

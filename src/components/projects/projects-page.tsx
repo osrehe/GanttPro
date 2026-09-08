@@ -100,7 +100,11 @@ export function ProjectsPage() {
                   {p.taskCount} tareas · rol {roleLabel(p.role)}
                 </p>
                 <div className="flex items-center gap-2">
-                  <Progress value={p.progressPct} className="h-2" />
+                  <Progress
+                    value={p.progressPct}
+                    className="h-2"
+                    aria-label={`Avance de ${p.name}`}
+                  />
                   <span className="w-10 text-right tabular-nums">{p.progressPct} %</span>
                 </div>
               </CardContent>

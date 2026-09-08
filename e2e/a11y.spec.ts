@@ -46,6 +46,8 @@ test.describe("Accesibilidad (Paso 10)", () => {
   }) => {
     await login(page);
 
+    // El título lo escribe Next tras la navegación de cliente; axe lo exige.
+    await expect(page).toHaveTitle(/GanttPro/);
     const listado = await seriousViolations(page);
     expect(listado, `Proyectos:\n${describeViolations(listado)}`).toEqual([]);
 

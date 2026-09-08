@@ -148,6 +148,7 @@ export function TaskTable() {
 
   const rows = useMemo(() => visibleTasks(tasks, collapsed), [tasks, collapsed]);
   const [focus, setFocus] = useState<Focus>({ row: 0, col: 1 });
+  const setStoreEditing = useProjectStore((s) => s.setEditing);
   const [editing, setEditing] = useState<{
     row: number;
     col: number;
@@ -172,6 +173,12 @@ export function TaskTable() {
   useEffect(() => {
     if (editing) editorRef.current?.focus();
   }, [editing]);
+
+  // Mientras hay una celda abierta, el sondeo de cambios ajenos no recarga el proyecto (UC-34).
+  useEffect(() => {
+    setStoreEditing(editing !== null);
+    return () => setStoreEditing(false);
+  }, [editing, setStoreEditing]);
 
   const resourceNames = useCallback(
     (taskId: string): string =>

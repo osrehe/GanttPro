@@ -7,3 +7,6 @@ packages/*/coverage
 package-lock.json
 next-env.d.ts
 public
+
+# Informe generado por Lighthouse (evidencia, no se formatea)
+docs/qa/lighthouse.html

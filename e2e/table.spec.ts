@@ -45,8 +45,10 @@ async function addTaskByKeyboard(page: Page, name: string, expectedRows: number)
   await page.keyboard.press("Insert");
   const editor = page.getByRole("textbox", { name: "Nombre" });
   await expect(editor).toBeVisible();
-  await page.keyboard.type(name);
-  await page.keyboard.press("Enter");
+  // `fill` escribe sobre el elemento aunque el servidor haya respondido y lo haya vuelto a montar;
+  // `keyboard.type` perdía caracteres bajo carga y en Firefox.
+  await editor.fill(name);
+  await editor.press("Enter");
   await expect(page.getByTestId("task-row")).toHaveCount(expectedRows);
   await expect(page.getByTestId("task-row").filter({ hasText: name })).toBeVisible();
 }

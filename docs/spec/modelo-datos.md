@@ -24,6 +24,7 @@ erDiagram
     User ||--o{ Comment : "escribe"
     User ||--o{ Baseline : "crea"
     User ||--o{ ShareLink : "crea"
+    User ||--o{ ProjectDeletion : "elimina"
     Project ||--o{ ProjectMember : "tiene"
     Project ||--|| Calendar : "calendario base"
     Project ||--o{ Calendar : "posee"
@@ -313,6 +314,24 @@ Enlace de solo lectura a un proyecto.
 | `revokedAt`   | DateTime | no     | no nulo = enlace inválido    |
 
 Índices: único `token`, `projectId`.
+
+### ProjectDeletion
+
+Registro de proyectos eliminados (UC-39). Sobrevive al proyecto: es la única huella que queda una vez
+que el `AuditLog` se borra en cascada.
+
+| Campo             | Tipo     | Oblig. | Reglas                          |
+| ----------------- | -------- | ------ | ------------------------------- |
+| `id`              | String   | sí     |                                 |
+| `projectId`       | String   | sí     | id del proyecto borrado, sin FK |
+| `projectName`     | String   | sí     | nombre en el momento de borrar  |
+| `deletedById`     | String   | sí     | FK a `User`                     |
+| `deletedAt`       | DateTime | sí     |                                 |
+| `taskCount`       | Int      | sí     | tareas que tenía                |
+| `dependencyCount` | Int      | sí     | dependencias que tenía          |
+| `resourceCount`   | Int      | sí     | recursos que tenía              |
+
+Índices: `deletedById`, `deletedAt`.
 
 ### Setting
 
