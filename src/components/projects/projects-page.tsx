@@ -83,7 +83,11 @@ export function ProjectsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="project-list">
           {list.map((p) => (
-            <Card key={p.id} className="flex flex-col" data-testid="project-card">
+            <Card
+              key={p.id}
+              className="hover:border-primary/40 flex flex-col transition-shadow hover:shadow-md"
+              data-testid="project-card"
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-start justify-between gap-2 text-base">
                   <Link href={`/projects/${p.id}/table`} className="hover:underline">

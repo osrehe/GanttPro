@@ -226,7 +226,7 @@ export function ResourceHistogram() {
           <div className="h-64">
             <LoadChart
               points={points}
-              color={current?.color ?? "#2563eb"}
+              color={current?.color ?? "#7c3aed"}
               onSelectIndex={(index) => setSelected(points[index] ?? null)}
             />
           </div>

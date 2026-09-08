@@ -242,7 +242,13 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   app bajo `src/app/(app)` (la raíz redirige a `/projects`), API bajo `src/app/api`, impresión PDF
   bajo `src/app/print/gantt`. Feriados de Chile por año en `src/lib/holidays/cl-AAAA.json`.
 - **shadcn/ui**: componentes en `src/components/ui`, helper `cn` en `src/lib/utils.ts`. Agregar con
-  `npx shadcn@latest add <componente>`. Fuentes como variables CSS `--font-sans` y `--font-geist-mono`.
+  `npx shadcn@latest add <componente>`. La identidad visual vive en `src/app/globals.css`: paleta
+  morado y celeste en OKLCH, con bloque `:root` para el tema claro y `.dark` para el oscuro. Las
+  fuentes (Plus Jakarta Sans y JetBrains Mono) se declaran en `src/app/layout.tsx` como variables
+  `--font-sans` y `--font-mono-app`, **en el cuerpo y no en la raíz**, porque `next-themes` reescribe
+  la clase de `<html>` al cambiar de tema. Los colores del Gantt, los gráficos y las exportaciones
+  son constantes en `gantt-model.ts`, `tracking/charts.tsx` y `lib/export/excel.ts`: si se cambia la
+  paleta hay que tocarlas también.
 
 ## Convenciones
 

@@ -28,9 +28,16 @@ export interface SCurvePoint {
 }
 
 /** Curva S: avance planificado contra el real (UC-22). */
-export function SCurveChart({ data }: { data: readonly SCurvePoint[] }) {
+export function SCurveChart({
+  data,
+  height = 280,
+}: {
+  data: readonly SCurvePoint[];
+  height?: number;
+}) {
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    // Altura explícita: el gráfico se monta después del layout y midiendo "100%" quedaba en cero.
+    <ResponsiveContainer width="100%" height={height}>
       <LineChart data={[...data]}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -41,7 +48,7 @@ export function SCurveChart({ data }: { data: readonly SCurvePoint[] }) {
           type="monotone"
           dataKey="planned"
           name="Planificado"
-          stroke="#6b7280"
+          stroke="#a5b4fc"
           dot={false}
           strokeWidth={2}
         />
@@ -49,7 +56,7 @@ export function SCurveChart({ data }: { data: readonly SCurvePoint[] }) {
           type="monotone"
           dataKey="actual"
           name="Real"
-          stroke="#2563eb"
+          stroke="#7c3aed"
           dot={false}
           strokeWidth={2}
           connectNulls={false}
@@ -72,13 +79,15 @@ export function LoadChart({
   points,
   color,
   onSelectIndex,
+  height = 256,
 }: {
   points: readonly LoadPoint[];
   color: string;
   onSelectIndex(index: number): void;
+  height?: number;
 }) {
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={height}>
       <BarChart
         data={[...points]}
         onClick={(state) => {
@@ -92,13 +101,13 @@ export function LoadChart({
         <ChartTooltip formatter={(value) => `${value} h`} />
         <ReferenceLine
           y={points[0]?.capacity ?? 0}
-          stroke="#111827"
+          stroke="#4c1d95"
           strokeDasharray="4 3"
           label={{ value: "capacidad", fontSize: 10, position: "insideTopRight" }}
         />
         <Bar dataKey="hours" name="Horas" cursor="pointer">
           {points.map((p) => (
-            <Cell key={p.key} fill={p.over ? "#dc2626" : color} />
+            <Cell key={p.key} fill={p.over ? "#e11d48" : color} />
           ))}
         </Bar>
       </BarChart>

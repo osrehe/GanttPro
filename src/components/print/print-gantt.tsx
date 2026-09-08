@@ -53,7 +53,7 @@ const GRID_COLOR = "#e5e7eb";
 const HEADER_BG = "#f3f4f6";
 const TEXT_COLOR = "#111827";
 const MUTED_COLOR = "#6b7280";
-const FONT = "Geist, Arial, Helvetica, sans-serif";
+const FONT = "Plus Jakarta Sans, Segoe UI, Arial, sans-serif";
 /** La tabla nunca ocupa más de este porcentaje del ancho útil para dejar sitio al Gantt. */
 const MAX_TABLE_RATIO = 0.6;
 

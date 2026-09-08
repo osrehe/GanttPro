@@ -11,7 +11,7 @@ export default function PrintLayout({ children }: { children: ReactNode }) {
       style={{
         background: "#fff",
         color: "#111827",
-        fontFamily: "Geist, Arial, Helvetica, sans-serif",
+        fontFamily: "Plus Jakarta Sans, Segoe UI, Arial, sans-serif",
         margin: 0,
       }}
     >

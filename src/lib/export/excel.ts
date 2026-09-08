@@ -37,16 +37,16 @@ export const DATE_FORMAT = "dd-mm-yyyy";
 const HEADER_FILL: ExcelJS.Fill = {
   type: "pattern",
   pattern: "solid",
-  fgColor: { argb: "FFE5E7EB" },
+  fgColor: { argb: "FFEDE9FE" },
 };
 const NON_WORKING_FILL: ExcelJS.Fill = {
   type: "pattern",
   pattern: "solid",
-  fgColor: { argb: "FFF3F4F6" },
+  fgColor: { argb: "FFF3F1FB" },
 };
-const DEFAULT_BAR = "FF2563EB";
-const SUMMARY_BAR = "FF374151";
-const CRITICAL_BAR = "FFDC2626";
+const DEFAULT_BAR = "FF7C3AED";
+const SUMMARY_BAR = "FF4C1D95";
+const CRITICAL_BAR = "FFE11D48";
 
 const STATUS_LABELS: Readonly<Record<TaskDto["status"], string>> = {
   NOT_STARTED: "No iniciada",
@@ -160,7 +160,7 @@ function styleHeader(row: ExcelJS.Row): void {
   row.font = { bold: true };
   row.fill = HEADER_FILL;
   row.alignment = { vertical: "middle" };
-  row.border = { bottom: { style: "thin", color: { argb: "FF9CA3AF" } } };
+  row.border = { bottom: { style: "thin", color: { argb: "FFC4B5FD" } } };
 }
 
 function resourceNames(ctx: ExportContext, taskId: string): string {

@@ -41,7 +41,7 @@ const TEXT_COLOR = "#111827";
 const MUTED_COLOR = "#6b7280";
 const TODAY_COLOR = "#2563eb";
 const STATUS_COLOR = "#d97706";
-const FONT = "Geist, Arial, Helvetica, sans-serif";
+const FONT = "Plus Jakarta Sans, Segoe UI, Arial, sans-serif";
 
 /** Escala según cuánto dura el proyecto, para que quepa sin desplazamientos enormes. */
 function scaleFor(from: string, to: string): TimeScale {

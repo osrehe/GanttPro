@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const geistSans = Geist({
+/** Tipografía de la interfaz: geométrica y de trazo abierto, cómoda en tablas densas. */
+const sans = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+/** Monoespaciada para códigos WBS, fechas y cifras alineadas. */
+const mono = JetBrains_Mono({
+  variable: "--font-mono-app",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -18,6 +22,10 @@ export const metadata: Metadata = {
   description: "Planificación de proyectos con cartas Gantt",
 };
 
+/**
+ * next-themes reescribe la clase de <html> al aplicar el tema, así que las variables de fuente van
+ * en el cuerpo: si estuvieran en la raíz, se perderían al cambiar de tema.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-CL" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${sans.variable} ${mono.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

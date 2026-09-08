@@ -365,7 +365,7 @@ export function GanttTimeline(props: Props) {
             x2={todayX}
             y1={0}
             y2={height}
-            stroke="#2563eb"
+            stroke="#7c3aed"
             strokeWidth={1.5}
             strokeDasharray="4 3"
           />

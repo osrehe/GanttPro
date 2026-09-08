@@ -80,7 +80,7 @@ export function buildGanttSvg(input: GanttPngInput): {
   root.setAttribute("width", String(width));
   root.setAttribute("height", String(height));
   root.setAttribute("viewBox", `0 0 ${width} ${height}`);
-  root.setAttribute("font-family", "Geist, Arial, Helvetica, sans-serif");
+  root.setAttribute("font-family", "Plus Jakarta Sans, Segoe UI, Arial, sans-serif");
 
   const background = document.createElementNS(SVG_NS, "rect");
   background.setAttribute("width", String(width));
@@ -93,7 +93,7 @@ export function buildGanttSvg(input: GanttPngInput): {
   const tableHeader = document.createElementNS(SVG_NS, "rect");
   tableHeader.setAttribute("width", String(leftWidth));
   tableHeader.setAttribute("height", String(headerHeight));
-  tableHeader.setAttribute("fill", "#f3f4f6");
+  tableHeader.setAttribute("fill", "#f3f1fb");
   table.appendChild(tableHeader);
   table.appendChild(text(8, headerHeight - 14, "WBS", { weight: "600", size: 11 }));
   table.appendChild(text(64, headerHeight - 14, "Nombre", { weight: "600", size: 11 }));
@@ -104,9 +104,9 @@ export function buildGanttSvg(input: GanttPngInput): {
     line.setAttribute("x2", String(width));
     line.setAttribute("y1", String(y + rowHeight));
     line.setAttribute("y2", String(y + rowHeight));
-    line.setAttribute("stroke", "#e5e7eb");
+    line.setAttribute("stroke", "#e7e3f7");
     table.appendChild(line);
-    table.appendChild(text(8, y + rowHeight / 2 + 4, row.wbsCode, { size: 11, fill: "#6b7280" }));
+    table.appendChild(text(8, y + rowHeight / 2 + 4, row.wbsCode, { size: 11, fill: "#6b6390" }));
     const label = row.isMilestone ? `◆ ${row.name}` : row.name;
     table.appendChild(
       text(64 + (row.depth - 1) * 14, y + rowHeight / 2 + 4, truncate(label, leftWidth - 80), {
@@ -120,7 +120,7 @@ export function buildGanttSvg(input: GanttPngInput): {
   divider.setAttribute("x2", String(leftWidth));
   divider.setAttribute("y1", "0");
   divider.setAttribute("y2", String(height));
-  divider.setAttribute("stroke", "#d1d5db");
+  divider.setAttribute("stroke", "#c9c1ee");
   table.appendChild(divider);
   root.appendChild(table);
 
@@ -194,7 +194,7 @@ function text(
   el.setAttribute("y", String(y));
   el.setAttribute("font-size", String(style.size ?? 11));
   el.setAttribute("font-weight", style.weight ?? "400");
-  el.setAttribute("fill", style.fill ?? "#111827");
+  el.setAttribute("fill", style.fill ?? "#241d3d");
   el.textContent = content;
   return el;
 }

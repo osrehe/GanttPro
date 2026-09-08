@@ -219,11 +219,11 @@ describe("Exportación a Excel (UC-26)", () => {
     // Sábado 12-09 sombreado en la fila de Levantamiento (fila 4); 18-09 feriado en Diseño.
     const levantamiento = sheet.getRow(4);
     expect(levantamiento.getCell(dayColumn("2026-09-12")).fill).toMatchObject({
-      fgColor: { argb: "FFF3F4F6" },
+      fgColor: { argb: "FFF3F1FB" },
     });
     // Barra crítica en rojo del 07 al 11.
     expect(levantamiento.getCell(dayColumn("2026-09-09")).fill).toMatchObject({
-      fgColor: { argb: "FFDC2626" },
+      fgColor: { argb: "FFE11D48" },
     });
     expect(levantamiento.getCell(dayColumn("2026-09-14")).fill?.type).toBeUndefined();
     // Hito en la columna del 21-09 (fila 6).

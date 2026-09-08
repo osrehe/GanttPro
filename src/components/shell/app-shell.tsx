@@ -86,7 +86,10 @@ export function AppShell({ user, children }: AppShellProps) {
     <div className="flex h-screen overflow-hidden">
       <aside className="bg-sidebar text-sidebar-foreground flex w-56 shrink-0 flex-col border-r">
         <div className="flex h-14 items-center px-4">
-          <Link href="/projects" className="text-lg font-semibold tracking-tight">
+          <Link
+            href="/projects"
+            className="from-primary bg-gradient-to-r to-sky-500 bg-clip-text text-lg font-bold tracking-tight text-transparent"
+          >
             GanttPro
           </Link>
         </div>
@@ -131,7 +134,7 @@ export function AppShell({ user, children }: AppShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
+        <header className="bg-background/80 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur">
           <h1 className="min-w-0 truncate text-base font-semibold" data-testid="project-title">
             {projectId ? (project?.name ?? "Cargando proyecto…") : "Proyectos"}
           </h1>

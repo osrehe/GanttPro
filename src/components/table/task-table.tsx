@@ -96,7 +96,7 @@ const COLUMNS: Array<{
   align?: "right";
 }> = [
   { key: "wbs", label: "WBS", width: "w-20", editable: false },
-  { key: "name", label: "Nombre", width: "min-w-[280px]", editable: true },
+  { key: "name", label: "Nombre", width: "w-[300px]", editable: true },
   { key: "start", label: "Inicio", width: "w-32", editable: true },
   { key: "end", label: "Fin", width: "w-32", editable: true },
   { key: "duration", label: "Duración", width: "w-24", editable: true, align: "right" },
@@ -667,7 +667,7 @@ export function TaskTable() {
           role="grid"
           aria-label="Tareas del proyecto"
           aria-rowcount={rows.length}
-          className="w-full border-collapse text-sm"
+          className="w-full min-w-[1480px] table-fixed border-collapse text-sm"
         >
           <thead className="bg-muted/60 sticky top-0 z-10">
             <tr>
@@ -731,10 +731,11 @@ export function TaskTable() {
                         role="gridcell"
                         data-col={c.key}
                         className={cn(
-                          "px-2 py-1 align-middle",
+                          "overflow-hidden px-2 py-1 align-middle whitespace-nowrap",
                           c.align === "right" && "text-right tabular-nums",
                           isFocused && !isEditing && "ring-primary ring-2 ring-inset",
                         )}
+                        title={c.key === "name" ? task.name : undefined}
                         onClick={(e) => {
                           e.stopPropagation();
                           select(task.id);

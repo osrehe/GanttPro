@@ -24,18 +24,19 @@ export const MAX_PX_PER_DAY = 160;
 export type ColorMode = "task" | "resource" | "status";
 export type LabelMode = "name" | "resources" | "none";
 
-export const DEFAULT_TASK_COLOR = "#2563eb";
-export const SUMMARY_COLOR = "#111827";
-export const MILESTONE_COLOR = "#111827";
-export const CRITICAL_COLOR = "#dc2626";
-export const BASELINE_COLOR = "#9ca3af";
+/** Paleta de la carta: morado para el plan, celeste para lo terminado, rosa para la ruta crítica. */
+export const DEFAULT_TASK_COLOR = "#7c3aed";
+export const SUMMARY_COLOR = "#4c1d95";
+export const MILESTONE_COLOR = "#5b21b6";
+export const CRITICAL_COLOR = "#e11d48";
+export const BASELINE_COLOR = "#a5b4fc";
 
 export const STATUS_COLORS: Readonly<Record<TaskDto["status"], string>> = {
-  NOT_STARTED: "#6b7280",
-  IN_PROGRESS: "#2563eb",
-  DONE: "#16a34a",
+  NOT_STARTED: "#a3a3c2",
+  IN_PROGRESS: "#7c3aed",
+  DONE: "#0891b2",
   ON_HOLD: "#d97706",
-  CANCELLED: "#9ca3af",
+  CANCELLED: "#c4b5fd",
 };
 
 /** Filas del Gantt: exactamente las mismas que la tabla (mismo store, misma función). */
@@ -73,7 +74,7 @@ export function barColor(task: TaskDto, mode: ColorMode, ctx: ColorContext): str
     case "resource": {
       const first = ctx.assignments.find((a) => a.taskId === task.id);
       const resource = first ? ctx.resources.find((r) => r.id === first.resourceId) : undefined;
-      return resource?.color ?? "#94a3b8";
+      return resource?.color ?? "#8b5cf6";
     }
     default:
       return task.color ?? DEFAULT_TASK_COLOR;
