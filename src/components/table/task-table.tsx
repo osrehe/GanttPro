@@ -39,7 +39,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { createCalendar, trackingStatus, type TrackingStatus } from "@ganttpro/engine";
+import {
+  createCalendar,
+  trackingStatus,
+  visibleRowRange,
+  type TrackingStatus,
+} from "@ganttpro/engine";
 import { TrackingToolbar } from "@/components/tracking/tracking-toolbar";
 import { formatDateCl } from "@/lib/dates";
 import type { TaskDto } from "@/lib/dto";
@@ -75,6 +80,13 @@ type ColumnKey =
   | "status"
   | "expected"
   | "deviation";
+
+/**
+ * Alto de fila supuesto al primer render. El real se mide del DOM apenas hay una fila dibujada: si
+ * el supuesto y el real no coinciden, los espaciadores desplazan el contenido en cada scroll y el
+ * puntero nunca acierta la fila.
+ */
+const DEFAULT_ROW_HEIGHT = 30;
 
 const COLUMNS: Array<{
   key: ColumnKey;
@@ -148,6 +160,14 @@ export function TaskTable() {
 
   const rows = useMemo(() => visibleTasks(tasks, collapsed), [tasks, collapsed]);
   const [focus, setFocus] = useState<Focus>({ row: 0, col: 1 });
+  // Virtualización vertical: con proyectos grandes solo se dibujan las filas visibles. Sin esto,
+  // 1.000 tareas metían 28.000 nodos en el documento y cada tecla volvía a dibujarlas todas.
+  const [viewport, setViewport] = useState({ scrollTop: 0, height: 600 });
+  const [rowHeight, setRowHeight] = useState(DEFAULT_ROW_HEIGHT);
+  const range = useMemo(
+    () => visibleRowRange(viewport.scrollTop, viewport.height, rowHeight, rows.length, 6),
+    [viewport.scrollTop, viewport.height, rowHeight, rows.length],
+  );
   const setStoreEditing = useProjectStore((s) => s.setEditing);
   const [editing, setEditing] = useState<{
     row: number;
@@ -157,6 +177,8 @@ export function TaskTable() {
   } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<TaskDto | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRowIntoViewRef = useRef<(row: number) => void>(() => {});
+  const rowHeightRef = useRef(DEFAULT_ROW_HEIGHT);
   const focusRef = useRef<Focus>(focus);
   focusRef.current = focus;
   const editorRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
@@ -166,13 +188,34 @@ export function TaskTable() {
 
   // Mantiene el foco en la fila seleccionada cuando cambia la selección desde fuera.
   useEffect(() => {
-    if (selectedIndex >= 0 && selectedIndex !== focus.row)
+    if (selectedIndex >= 0 && selectedIndex !== focus.row) {
       setFocus((f) => ({ ...f, row: selectedIndex }));
+      scrollRowIntoViewRef.current(selectedIndex);
+    }
   }, [selectedIndex, focus.row]);
 
   useEffect(() => {
     if (editing) editorRef.current?.focus();
   }, [editing]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const fila = el.querySelector<HTMLTableRowElement>('tr[data-testid="task-row"]');
+      const alto = fila?.getBoundingClientRect().height ?? 0;
+      if (alto > 0) setRowHeight((actual) => (Math.abs(actual - alto) > 0.5 ? alto : actual));
+      setViewport({ scrollTop: el.scrollTop, height: el.clientHeight });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    el.addEventListener("scroll", update, { passive: true });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("scroll", update);
+    };
+  }, [rows.length]);
 
   // Mientras hay una celda abierta, el sondeo de cambios ajenos no recarga el proyecto (UC-34).
   useEffect(() => {
@@ -335,6 +378,22 @@ export function TaskTable() {
     moveFocus(move);
   }
 
+  /** Lleva la fila al área visible calculando la posición: con virtualización puede no existir. */
+  function scrollRowIntoView(row: number): void {
+    const el = containerRef.current;
+    if (!el) return;
+    const headerHeight = el.querySelector("thead")?.clientHeight ?? 0;
+    const top = row * rowHeightRef.current;
+    const bottom = top + rowHeightRef.current;
+    const visibleTop = el.scrollTop;
+    const visibleBottom = el.scrollTop + el.clientHeight - headerHeight;
+    if (top < visibleTop) el.scrollTop = top;
+    else if (bottom > visibleBottom) el.scrollTop = bottom - el.clientHeight + headerHeight;
+  }
+
+  scrollRowIntoViewRef.current = scrollRowIntoView;
+  rowHeightRef.current = rowHeight;
+
   function moveFocus(direction: "stay" | "right" | "down" | "left" | "up") {
     let { row, col } = focusRef.current;
     if (direction === "right") col = Math.min(COLUMNS.length - 1, col + 1);
@@ -344,6 +403,7 @@ export function TaskTable() {
     const task = rows[row];
     if (task && task.id !== useProjectStore.getState().selectedTaskId) select(task.id);
     setFocus({ row, col });
+    scrollRowIntoView(row);
   }
 
   // ---------------------------------------------------------------- Acciones de la barra
@@ -386,6 +446,8 @@ export function TaskTable() {
       setFocus({ row, col: 1 });
       const t = newRows[row] as TaskDto;
       setEditing({ row, col: 1, value: t.name, selectAll: true });
+      // Con la tabla virtualizada la fila nueva puede quedar fuera del área visible.
+      scrollRowIntoView(row);
     }
   }
 
@@ -632,7 +694,11 @@ export function TaskTable() {
                 </td>
               </tr>
             ) : null}
-            {rows.map((task, rowIndex) => {
+            {range.start > 0 ? (
+              <tr aria-hidden style={{ height: range.start * rowHeight }} />
+            ) : null}
+            {rows.slice(range.start, range.end).map((task, indexEnRango) => {
+              const rowIndex = range.start + indexEnRango;
               const isSelected = task.id === selectedTaskId;
               const isHighlighted = Boolean(highlighted[task.id]);
               return (
@@ -643,6 +709,7 @@ export function TaskTable() {
                   data-testid="task-row"
                   data-task-id={task.id}
                   data-wbs={task.wbsCode}
+
                   className={cn(
                     "border-b transition-colors duration-500",
                     isSelected ? "bg-primary/10" : "hover:bg-muted/40",
@@ -740,6 +807,9 @@ export function TaskTable() {
                 </tr>
               );
             })}
+            {range.end < rows.length ? (
+              <tr aria-hidden style={{ height: (rows.length - range.end) * rowHeight }} />
+            ) : null}
           </tbody>
         </table>
       </div>

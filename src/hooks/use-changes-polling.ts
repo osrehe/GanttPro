@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { useProjectStore } from "@/stores/project-store";
-import { summarizeChanges } from "./changes-summary";
+import { needsProjectReload, summarizeChanges } from "./changes-summary";
 
 /**
  * Cada cuántos milisegundos se consulta el feed de cambios (UC-34). El criterio de aceptación pide
@@ -65,6 +65,12 @@ export function useChangesPolling(projectId: string | null, currentUserId: strin
     const summary = summarizeChanges(data.changes, currentUserId);
     if (summary.message === null) return;
     toast.info(summary.message, { id: `cambios-${projectId}` });
-    void queryClient.invalidateQueries({ queryKey: ["project", projectId, "full"] });
+    // Solo se recarga el proyecto si el cambio ajeno toca el plan; un comentario no lo cambia.
+    if (needsProjectReload(data.changes, currentUserId)) {
+      void queryClient.invalidateQueries({
+        queryKey: ["project", projectId, "full"],
+        refetchType: "active",
+      });
+    }
   }, [data, projectId, currentUserId, queryClient]);
 }

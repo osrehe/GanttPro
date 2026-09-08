@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AuditLogDto } from "@/lib/dto";
-import { summarizeChanges } from "./changes-summary";
+import { needsProjectReload, summarizeChanges } from "./changes-summary";
 
 function change(userId: string, userName: string, summary: string): AuditLogDto {
   return {
@@ -96,5 +96,24 @@ describe("Resumen de cambios para el aviso de colaboración (UC-34)", () => {
     expect(summarizeChanges([change("u-ana", "Ana Pérez", "editó la tarea 1")], null).count).toBe(
       1,
     );
+  });
+});
+
+describe("Qué cambios obligan a recargar el proyecto", () => {
+  const de = (userId: string, entityType: string): AuditLogDto => ({
+    ...change(userId, "Otra Persona", "hizo algo"),
+    entityType,
+  });
+
+  it("recarga cuando el cambio ajeno toca el plan", () => {
+    expect(needsProjectReload([de("u-otro", "Task")], ME)).toBe(true);
+    expect(needsProjectReload([de("u-otro", "Dependency")], ME)).toBe(true);
+    expect(needsProjectReload([de("u-otro", "Calendar")], ME)).toBe(true);
+  });
+
+  it("no recarga por comentarios, por cambios propios ni sin cambios", () => {
+    expect(needsProjectReload([de("u-otro", "Comment")], ME)).toBe(false);
+    expect(needsProjectReload([de(ME, "Task")], ME)).toBe(false);
+    expect(needsProjectReload([], ME)).toBe(false);
   });
 });

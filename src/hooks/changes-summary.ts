@@ -14,6 +14,31 @@ export interface ChangesSummary {
   readonly authors: string[];
 }
 
+/**
+ * Entidades cuyo cambio obliga a recargar el proyecto. Un comentario ajeno se avisa, pero no
+ * cambia el plan: recargar todo por él costaba una consulta completa y volver a dibujar la tabla.
+ */
+const ENTITIES_THAT_CHANGE_THE_PLAN = new Set([
+  "Task",
+  "Dependency",
+  "Resource",
+  "Assignment",
+  "Project",
+  "Calendar",
+  "Baseline",
+  "ProjectMember",
+]);
+
+/** `true` si alguno de los cambios ajenos afecta a los datos que muestran las vistas del plan. */
+export function needsProjectReload(
+  changes: readonly AuditLogDto[],
+  currentUserId: string | null,
+): boolean {
+  return changes.some(
+    (c) => c.userId !== currentUserId && ENTITIES_THAT_CHANGE_THE_PLAN.has(c.entityType),
+  );
+}
+
 /** Hasta este número de cambios se listan uno a uno; por encima se agrupan. */
 export const MAX_DETAILED_CHANGES = 3;
 

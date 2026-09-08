@@ -1,4 +1,4 @@
-import type { Dependency, Prisma, Project, Task, TaskStatus } from "@prisma/client";
+import { Prisma, type Dependency, type Project, type Task, type TaskStatus } from "@prisma/client";
 import {
   applyCriticalPath,
   renumber as renumberTasks,
@@ -103,7 +103,7 @@ export async function rescheduleProject(
   }).tasks;
   const finalTasks = applyCriticalPath(scheduled, deps, graph.calendar);
 
-  const updates: Array<{ id: string; data: Prisma.TaskUncheckedUpdateInput }> = [];
+  const updates: ScheduledRow[] = [];
   for (const t of finalTasks) {
     const row = rowsById.get(t.id);
     if (!row) continue;
@@ -125,22 +125,110 @@ export async function rescheduleProject(
     if (row.isCritical !== t.isCritical) data.isCritical = t.isCritical;
     if (row.totalFloatDays !== t.totalFloatDays) data.totalFloatDays = t.totalFloatDays;
     if (row.freeFloatDays !== t.freeFloatDays) data.freeFloatDays = t.freeFloatDays;
-    if (Object.keys(data).length > 0) updates.push({ id: t.id, data });
+    if (Object.keys(data).length > 0) {
+      updates.push({
+        id: t.id,
+        parentId: t.parentId,
+        orderIndex: t.orderIndex,
+        wbsCode: t.wbsCode,
+        isSummary: t.isSummary,
+        isMilestone: t.isMilestone,
+        anchorDate: t.anchorDate,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        durationDays: t.durationDays,
+        progressPct: t.progressPct,
+        status,
+        isCritical: t.isCritical,
+        totalFloatDays: t.totalFloatDays,
+        freeFloatDays: t.freeFloatDays,
+      });
+    }
   }
 
-  const updatedRows: Task[] = [];
-  const CHUNK = 50;
-  for (let i = 0; i < updates.length; i += CHUNK) {
-    const chunk = updates.slice(i, i + CHUNK);
-    const rows = await Promise.all(
-      chunk.map((u) => tx.task.update({ where: { id: u.id }, data: u.data })),
-    );
-    updatedRows.push(...rows);
-  }
+  const updatedRows = await writeScheduledRows(tx, updates);
   const updatedById = new Map(updatedRows.map((r) => [r.id, r]));
   const all = finalTasks.map((t) =>
     toTaskDto(updatedById.get(t.id) ?? (rowsById.get(t.id) as Task)),
   );
   const affected = updatedRows.map(toTaskDto);
   return { affected, all };
+}
+
+/** Fila que la reprogramación deja escrita: son los campos que el motor deriva. */
+interface ScheduledRow {
+  readonly id: string;
+  readonly parentId: string | null;
+  readonly orderIndex: number;
+  readonly wbsCode: string;
+  readonly isSummary: boolean;
+  readonly isMilestone: boolean;
+  readonly anchorDate: string | null;
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly durationDays: number;
+  readonly progressPct: number;
+  readonly status: TaskStatus;
+  readonly isCritical: boolean;
+  readonly totalFloatDays: number | null;
+  readonly freeFloatDays: number | null;
+}
+
+/**
+ * Escribe todas las filas reprogramadas con una sola sentencia y las relee.
+ *
+ * Antes se hacía un `update` por tarea: con 1.000 tareas eran 1.000 viajes a la base y unos 2,5 s
+ * dentro de la transacción. Las fechas viajan como texto `YYYY-MM-DD` y se convierten con `::date`
+ * para que la zona horaria de la sesión no las corra un día.
+ */
+async function writeScheduledRows(
+  tx: Prisma.TransactionClient,
+  updates: readonly ScheduledRow[],
+): Promise<Task[]> {
+  if (updates.length === 0) return [];
+  const values = Prisma.join(
+    updates.map(
+      (u) => Prisma.sql`(
+        ${u.id}::text,
+        ${u.parentId}::text,
+        ${u.orderIndex}::int,
+        ${u.wbsCode}::text,
+        ${u.isSummary}::boolean,
+        ${u.isMilestone}::boolean,
+        ${u.anchorDate}::date,
+        ${u.startDate}::date,
+        ${u.endDate}::date,
+        ${u.durationDays}::int,
+        ${u.progressPct}::int,
+        ${u.status}::"TaskStatus",
+        ${u.isCritical}::boolean,
+        ${u.totalFloatDays}::int,
+        ${u.freeFloatDays}::int
+      )`,
+    ),
+  );
+  await tx.$executeRaw`
+    UPDATE "Task" AS t
+    SET "parentId" = v."parentId",
+        "orderIndex" = v."orderIndex",
+        "wbsCode" = v."wbsCode",
+        "isSummary" = v."isSummary",
+        "isMilestone" = v."isMilestone",
+        "anchorDate" = v."anchorDate",
+        "startDate" = v."startDate",
+        "endDate" = v."endDate",
+        "durationDays" = v."durationDays",
+        "progressPct" = v."progressPct",
+        "status" = v."status",
+        "isCritical" = v."isCritical",
+        "totalFloatDays" = v."totalFloatDays",
+        "freeFloatDays" = v."freeFloatDays",
+        "updatedAt" = now()
+    FROM (VALUES ${values}) AS v(
+      "id", "parentId", "orderIndex", "wbsCode", "isSummary", "isMilestone", "anchorDate",
+      "startDate", "endDate", "durationDays", "progressPct", "status", "isCritical",
+      "totalFloatDays", "freeFloatDays"
+    )
+    WHERE t."id" = v."id"`;
+  return tx.task.findMany({ where: { id: { in: updates.map((u) => u.id) } } });
 }

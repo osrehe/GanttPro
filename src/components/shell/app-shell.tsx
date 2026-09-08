@@ -10,12 +10,13 @@ import {
   Upload,
   Users,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useCallback, useState, type ReactNode } from "react";
 import { ExportMenu } from "@/components/export/export-menu";
-import { ImportDialog } from "@/components/import/import-dialog";
+
 import { ShortcutsDialog } from "@/components/shell/shortcuts-dialog";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,12 @@ interface AppShellProps {
   user: { name: string; email: string };
   children: ReactNode;
 }
+
+// El diálogo de importación solo se descarga al abrirlo.
+const ImportDialog = dynamic(
+  () => import("@/components/import/import-dialog").then((m) => m.ImportDialog),
+  { ssr: false },
+);
 
 const VIEWS = [
   { key: "table", label: "Tabla" },
@@ -226,13 +233,15 @@ export function AppShell({ user, children }: AppShellProps) {
           </div>
         </header>
         <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-        <ImportDialog
-          open={importOpen}
-          onOpenChange={setImportOpen}
-          projectId={projectId}
-          projectName={projectId ? (project?.name ?? null) : null}
-          canEditProject={role === "ADMIN" || role === "EDITOR"}
-        />
+        {importOpen ? (
+          <ImportDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            projectId={projectId}
+            projectName={projectId ? (project?.name ?? null) : null}
+            canEditProject={role === "ADMIN" || role === "EDITOR"}
+          />
+        ) : null}
         <main className="min-h-0 flex-1 overflow-auto">{children}</main>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, FileSpreadsheet, FileText, ImageDown } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,12 @@ import { downloadFromApi } from "@/lib/download";
 import { exportFileName } from "@/lib/export/excel";
 import { useMounted } from "@/hooks/use-mounted";
 import { describeError } from "@/stores/project-store";
-import { PdfExportDialog } from "./pdf-export-dialog";
+
+// El diálogo de PDF solo se descarga cuando alguien lo abre.
+const PdfExportDialog = dynamic(
+  () => import("./pdf-export-dialog").then((m) => m.PdfExportDialog),
+  { ssr: false },
+);
 
 interface Props {
   projectId: string | null;
@@ -111,7 +117,7 @@ export function ExportMenu({ projectId, projectName, view }: Props) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {projectId ? (
+      {projectId && pdfOpen ? (
         <PdfExportDialog
           open={pdfOpen}
           onOpenChange={setPdfOpen}

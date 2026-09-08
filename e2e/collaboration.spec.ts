@@ -35,6 +35,13 @@ async function openSeedProject(page: Page): Promise<string> {
 // servidor de desarrollo, que compila cada ruta la primera vez que se visita.
 test.describe.configure({ mode: "serial", timeout: 180_000 });
 
+/** La tabla solo dibuja las filas visibles: para ver la última hay que bajar el scroll. */
+async function scrollAlFinal(page: Page): Promise<void> {
+  await page.getByTestId("task-grid").evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
 test.describe("Colaboración simultánea y comentarios (UC-34, UC-35)", () => {
   let adminContext: BrowserContext;
   let editorContext: BrowserContext;
@@ -74,11 +81,15 @@ test.describe("Colaboración simultánea y comentarios (UC-34, UC-35)", () => {
 
     // El editor abre el mismo proyecto: el polling debe traerle la tarea nueva.
     await editorPage.goto(`/projects/${projectId}/table`);
+    await editorPage.getByTestId("task-row").first().waitFor();
+    await scrollAlFinal(editorPage);
     const editorRow = editorPage.getByTestId("task-row").filter({ hasText: original });
     await expect(editorRow).toHaveCount(1, { timeout: 30_000 });
 
     // La administradora renombra la tarea desde su propia sesión.
     await adminPage.reload();
+    await adminPage.getByTestId("task-row").first().waitFor();
+    await scrollAlFinal(adminPage);
     const adminRow = adminPage.getByTestId("task-row").filter({ hasText: original });
     await expect(adminRow).toHaveCount(1, { timeout: 30_000 });
     const renamed = `${original} (renombrada)`;

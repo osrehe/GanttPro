@@ -2,20 +2,12 @@
 
 import { createCalendar, projectKpis, sCurve, type BaselineSnapshot } from "@ganttpro/engine";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip as ChartTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,6 +22,12 @@ import { formatDateCl, todayIso } from "@/lib/dates";
 import { describeError, useProjectStore } from "@/stores/project-store";
 
 /** Dashboard del proyecto (UC-22): KPIs, hitos próximos, costos y curva S. */
+// Recharts se carga solo al abrir el dashboard: es la dependencia más pesada de la vista.
+const SCurveChart = dynamic(() => import("./charts").then((m) => m.SCurveChart), {
+  ssr: false,
+  loading: () => <Skeleton className="h-full w-full" />,
+});
+
 export function DashboardView() {
   const projectId = useProjectStore((s) => s.projectId) as string;
   const project = useProjectStore((s) => s.project);
@@ -260,32 +258,7 @@ export function DashboardView() {
           {curve.length === 0 ? (
             <p className="text-muted-foreground text-sm">Sin tareas con duración para graficar.</p>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={curve.map((p) => ({ ...p, label: formatDateCl(p.date) }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit=" %" />
-                <ChartTooltip formatter={(value) => `${value} %`} />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="planned"
-                  name="Planificado"
-                  stroke="#6b7280"
-                  dot={false}
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  name="Real"
-                  stroke="#2563eb"
-                  dot={false}
-                  strokeWidth={2}
-                  connectNulls={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <SCurveChart data={curve.map((p) => ({ ...p, label: formatDateCl(p.date) }))} />
           )}
         </CardContent>
       </Card>

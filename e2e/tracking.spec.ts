@@ -59,6 +59,10 @@ async function createProjectAB(page: Page, name: string): Promise<void> {
 }
 
 test.describe("Seguimiento, líneas base, dashboard y auditoría (UC-19, UC-21, UC-22, UC-36)", () => {
+  // Recorrido largo: crea el proyecto, guarda la línea base y pasa por cinco vistas. Con el
+  // servidor de desarrollo compilando bajo demanda no cabe en el minuto que trae por defecto.
+  test.describe.configure({ timeout: 150_000 });
+
   test("guardar baseline → mover 2 tareas → la tabla comparativa muestra +3/+3", async ({
     page,
   }) => {

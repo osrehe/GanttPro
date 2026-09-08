@@ -9,20 +9,11 @@ import {
   type LevelingResult,
 } from "@ganttpro/engine";
 import { useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip as ChartTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +34,12 @@ import type { TaskDto } from "@/lib/dto";
 import { cn } from "@/lib/utils";
 import { bulkPatchCommand } from "@/stores/commands";
 import { useProjectStore } from "@/stores/project-store";
+
+// Recharts se carga solo cuando se abre la vista de recursos.
+const LoadChart = dynamic(() => import("./charts").then((m) => m.LoadChart), {
+  ssr: false,
+  loading: () => <Skeleton className="h-full w-full" />,
+});
 
 type Mode = "daily" | "weekly";
 
@@ -227,31 +224,11 @@ export function ResourceHistogram() {
           </p>
         ) : (
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={points}
-                onClick={(state) => {
-                  const idx = (state as { activeTooltipIndex?: number } | null)?.activeTooltipIndex;
-                  if (typeof idx === "number") setSelected(points[idx] ?? null);
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 11 }} unit=" h" />
-                <ChartTooltip formatter={(value) => `${value} h`} />
-                <ReferenceLine
-                  y={points[0]?.capacity ?? 0}
-                  stroke="#111827"
-                  strokeDasharray="4 3"
-                  label={{ value: "capacidad", fontSize: 10, position: "insideTopRight" }}
-                />
-                <Bar dataKey="hours" name="Horas" cursor="pointer">
-                  {points.map((p) => (
-                    <Cell key={p.key} fill={p.over ? "#dc2626" : (current?.color ?? "#2563eb")} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <LoadChart
+              points={points}
+              color={current?.color ?? "#2563eb"}
+              onSelectIndex={(index) => setSelected(points[index] ?? null)}
+            />
           </div>
         )}
         {selected ? (
