@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 /** Exporta el proyecto a Excel (UC-26). `?gantt=day|week` controla la hoja Gantt. */
 export const GET = handle<Ctx>(async (request, context) => {

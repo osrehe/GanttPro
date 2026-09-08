@@ -150,7 +150,7 @@ beforeEach(() => {
   currentUser = importer;
 });
 
-describe("Importación (UC-28, UC-29, UC-30)", () => {
+describe("Importación (UC-29, UC-30)", () => {
   let projectId: string;
 
   it("sin sesión responde 401", async () => {

@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/api/access";
 import { handle } from "@/lib/api/response";
 import { buildImportTemplate } from "@/lib/import/template";
 
-export const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 /** Plantilla Excel de importación con filas de ejemplo e instrucciones (UC-28). */
 export const GET = handle(async () => {

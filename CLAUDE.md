@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construye siguiendo un plan de 12 pasos (0–11). Estado actual: **Paso 10
-completado** (roles por proyecto, enlaces de solo lectura, colaboración por polling, comentarios con
-menciones y pulido). El siguiente y último paso es el Paso 11: QA final, documentación y entrega.
+exportación Excel/PDF). Se construyó siguiendo un plan de 12 pasos (0–11). Estado actual: **plan
+terminado**: los 12 pasos (0–11) están cerrados y la versión 1.0.0 está etiquetada. Cualquier trabajo
+nuevo parte del backlog (`docs/backlog.md`), no del plan.
 
 Fuentes de verdad, en este orden:
 
@@ -45,8 +45,12 @@ npm run test             # Vitest, proyectos "engine" y "web", con TZ=UTC
 npm run test:coverage    # cobertura del engine con umbral 90 %
 npm run test:unit        # solo engine + web (sin base de datos)
 npm run test:integration # Route Handlers reales contra ganttpro_test (trunca sus tablas)
-npm run test:e2e         # Playwright (Chromium). Requiere BD sembrada; levanta o reutiliza `npm run dev`
+npm run test:e2e         # Playwright (Chromium y, en los flujos principales, Firefox). Requiere BD sembrada
 npm run test:e2e:perf    # rendimiento del Gantt con el seed de 1.110 tareas (requiere db:seed:perf); corre aparte
+npm run test:e2e:qa      # recorrido de las 30 verificaciones de docs/qa/checklist.md; deja capturas en docs/qa/evidencia
+npm run lighthouse       # Lighthouse sobre el Gantt del proyecto sembrado (requiere `npm run start`)
+npm run docker:build     # imagen de producción (Chromium del sistema para el PDF)
+npm run docker:prod      # docker-compose.prod.yml: Postgres + aplicación
 docker compose up -d     # Postgres 16: BD ganttpro y ganttpro_test. Puerto host: POSTGRES_PORT en .env
 npm run db:migrate       # prisma migrate dev (crea/aplica migraciones en desarrollo)
 npm run db:migrate:deploy
@@ -216,6 +220,14 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   de los feriados de Chile disponibles en `src/lib/holidays`. `e2e/a11y.spec.ts` verifica con
   `@axe-core/playwright` que no haya violaciones graves ni críticas en Proyectos, Tabla, Gantt,
   Recursos y Configuración.
+- **QA, seguridad y despliegue (Paso 11)**: `docs/qa/checklist.md` son 30 verificaciones que
+  ejecuta `e2e/qa-checklist.spec.ts` dejando una captura por fila en `docs/qa/evidencia/`. El
+  endurecimiento vive en `next.config.ts` (cabeceras y CSP), `src/lib/rate-limit.ts` (limitador en
+  memoria por proceso) y `src/middleware.ts`, con pruebas de autorización cruzada entre proyectos en
+  `src/app/api/security.integration.test.ts` (ADR-012). La imagen de producción es el `Dockerfile`
+  multietapa con salida `standalone` y Chromium del sistema, y `docker-compose.prod.yml` levanta
+  base de datos y aplicación. La entrega está descrita en `docs/entrega.md`, `CHANGELOG.md` y
+  `docs/backlog.md`.
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`

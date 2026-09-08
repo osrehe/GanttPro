@@ -29,7 +29,7 @@ están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
 | PDF              | Puppeteer contra ruta interna `/print/gantt` con páginas explícitas. Texto vectorial.                                                                                |
 | Undo/redo        | Store Zustand único con patrón command; engine en cliente para preview optimista, servidor como fuente de verdad; inverso persistido vía `bulk`.                     |
 | API              | Route Handlers, Zod compartido, envolvente `{ data } \| { error }`, códigos `VALIDATION`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `CYCLE`, `CONFLICT`, `INTERNAL`. |
-| Colaboración     | Polling TanStack Query 2 s contra `GET /api/projects/:id/changes?since=`.                                                                                            |
+| Colaboración     | Polling TanStack Query 1,5 s contra `GET /api/projects/:id/changes?since=`.                                                                                          |
 | Idioma           | Español (Chile) en UI, docs, comentarios y commits; identificadores en inglés; sin framework i18n.                                                                   |
 
 ## Pasos
@@ -87,7 +87,7 @@ Se actualiza al cerrar cada paso. Estados: **Pendiente** → **Engine** (lógica
 | UC-08 | Eliminar tarea                    | Completado | 5 · 6          | confirmación; deshacer recrea el subárbol                                                                                   |
 | UC-09 | Rollup de resúmenes               | Completado | 2 · 6          | visible en la tabla; e2e verifica fechas del resumen                                                                        |
 | UC-10 | Crear y editar dependencias       | Completado | 2 · 5 · 6 · 7  | columna, panel y arrastre de conectores en el Gantt con popover en la flecha                                                |
-| UC-11 | Reprogramación de sucesoras       | API        | 2 · 5          | reprogramación en servidor en cada mutación; `affected`                                                                     |
+| UC-11 | Reprogramación de sucesoras       | Completado | 2 · 5 · 7      | reprogramación en servidor en cada mutación; e2e mueve una barra y la sucesora la sigue                                     |
 | UC-12 | Mover tarea con predecesoras      | Completado | 2 · 7          | arrastre de barra en el Gantt actualiza `anchorDate`; e2e mueve 3 días                                                      |
 | UC-13 | Quitar dependencia                | Completado | 2 · 5 · 6      | columna y panel                                                                                                             |
 | UC-14 | Duración y avance desde el Gantt  | Completado | 7              | handles de borde derecho y de avance con previsualización                                                                   |
@@ -110,7 +110,7 @@ Se actualiza al cerrar cada paso. Estados: **Pendiente** → **Engine** (lógica
 | UC-31 | Iniciar sesión                    | Completado | 4              | Auth.js credenciales, middleware, e2e de login                                                                              |
 | UC-32 | Roles por proyecto                | Completado | 10             | `ProjectMember` con diálogo de miembros; la API exige el rol y la interfaz deshabilita lo que un lector no puede hacer      |
 | UC-33 | Compartir por enlace              | Completado | 10             | token revocable con vencimiento opcional; `/share/[token]` es público, de solo lectura y sin datos de personas              |
-| UC-34 | Colaboración simultánea           | Completado | 5 · 10         | polling de 2 s con aviso de los cambios ajenos y recarga; se detiene con la pestaña oculta o un comando en vuelo            |
+| UC-34 | Colaboración simultánea           | Completado | 5 · 10         | polling de 1,5 s con aviso de los cambios ajenos y recarga; se detiene con la pestaña oculta o un comando en vuelo          |
 | UC-35 | Comentarios y menciones           | Completado | 10             | panel en el detalle de la tarea con @menciones sobre los miembros y adaptador de correo (consola en desarrollo)             |
 | UC-36 | Historial de cambios              | Completado | 5 · 8          | vista Auditoría con filtros por tarea, usuario y fecha                                                                      |
 | UC-37 | Configuración global              | Completado | 8 · 10         | página Configuración con valor UF, moneda, formato de fechas y logo de las exportaciones                                    |

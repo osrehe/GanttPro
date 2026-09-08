@@ -1,0 +1,59 @@
+# Despliegue de producción en un servidor propio (ADR-004, ADR-012).
+#
+#   cp .env.example .env   # y ajusta DATABASE_URL, AUTH_SECRET y POSTGRES_PASSWORD
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# La primera vez, para cargar el proyecto de ejemplo:
+#   docker compose -f docker-compose.prod.yml run --rm app npx prisma db seed
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ganttpro-db-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ganttpro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:-ganttpro}
+    volumes:
+      - ganttpro-pgdata-prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ganttpro} -d ${POSTGRES_DB:-ganttpro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # La base no se publica al exterior: solo la alcanza la aplicación por la red interna.
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ganttpro:latest
+    container_name: ganttpro-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ganttpro:${POSTGRES_PASSWORD}@db:5432/ganttpro?schema=public}
+      AUTH_SECRET: ${AUTH_SECRET:?define AUTH_SECRET en .env}
+      AUTH_TRUST_HOST: "true"
+      # El servidor abre su propia página de impresión por loopback.
+      PRINT_BASE_URL: ${PRINT_BASE_URL:-http://127.0.0.1:3000}
+      PUPPETEER_EXECUTABLE_PATH: ${PUPPETEER_EXECUTABLE_PATH:-/usr/bin/chromium}
+      # Límites de peticiones; en producción rigen los valores estrictos por defecto.
+      RATE_LIMIT_LOGIN_MAX: ${RATE_LIMIT_LOGIN_MAX:-10}
+      RATE_LIMIT_API_MAX: ${RATE_LIMIT_API_MAX:-120}
+      # Inicio de sesión con Google (opcional).
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      NEXT_PUBLIC_AUTH_GOOGLE: ${NEXT_PUBLIC_AUTH_GOOGLE:-}
+      # Correo de las menciones (por defecto se escriben en la consola del servidor).
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-console}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    # Chromium necesita más memoria compartida que la que Docker da por defecto (64 MB).
+    shm_size: "512mb"
+
+volumes:
+  ganttpro-pgdata-prod:

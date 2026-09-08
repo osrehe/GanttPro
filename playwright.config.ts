@@ -9,8 +9,12 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
  */
 export default defineConfig({
   testDir: "./e2e",
-  // El test de rendimiento se ejecuta aparte (npm run test:e2e:perf) para que no compita por CPU.
-  testIgnore: process.env.E2E_PERF ? undefined : /.perf.spec.ts$/,
+  // El test de rendimiento y el recorrido de QA se ejecutan aparte (npm run test:e2e:perf y
+  // npm run test:e2e:qa): compiten por CPU y el segundo escribe capturas de evidencia.
+  testIgnore: [
+    ...(process.env.E2E_PERF ? [] : [/.perf.spec.ts$/]),
+    ...(process.env.E2E_QA ? [] : [/qa-checklist.spec.ts$/]),
+  ],
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
@@ -26,7 +30,16 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      // Firefox cubre los flujos principales; los arrastres finos y las descargas se verifican en
+      // Chromium, que es el navegador de referencia del proyecto.
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+      testMatch: ["**/auth.spec.ts", "**/table.spec.ts", "**/gantt.spec.ts"],
+    },
+  ],
   webServer: {
     command: isCI ? "npm run start" : "npm run dev",
     url: `${baseURL}/health`,

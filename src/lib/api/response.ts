@@ -4,9 +4,16 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { UnauthorizedError } from "@/lib/auth";
 
-/** Códigos de error de la API (ADR-009). */
+/** Códigos de error de la API (ADR-009). `RATE_LIMITED` lo emite el middleware (ADR-012). */
 export type ApiErrorCode =
-  "VALIDATION" | "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CYCLE" | "CONFLICT" | "INTERNAL";
+  | "VALIDATION"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "CYCLE"
+  | "CONFLICT"
+  | "RATE_LIMITED"
+  | "INTERNAL";
 
 const STATUS_BY_CODE: Readonly<Record<ApiErrorCode, number>> = {
   VALIDATION: 422,
@@ -15,6 +22,7 @@ const STATUS_BY_CODE: Readonly<Record<ApiErrorCode, number>> = {
   NOT_FOUND: 404,
   CYCLE: 422,
   CONFLICT: 409,
+  RATE_LIMITED: 429,
   INTERNAL: 500,
 };
 

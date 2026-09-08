@@ -11,6 +11,8 @@
 
 # next.js
 /.next/
+# Builds de verificación con NEXT_DIST_DIR (ver ADR-012)
+/.next-*/
 /out/
 
 # producción
