@@ -27,11 +27,12 @@ cierre. Zona horaria: America/Santiago. El commit de cada paso se obtiene con `g
 | 9    | Exportación (Excel, PDF, PNG) e importación (Excel/CSV, MS Project)     | 2026-09-07 14:05 | 2026-09-07 14:50 | 45 min              | ~295 k        | 2 (~534 k)   | `paso-9`  |
 | 10   | Roles, enlaces de solo lectura, colaboración, comentarios y pulido      | 2026-09-07 14:52 | 2026-09-07 20:55 | 78 min (con pausa)  | ~130 k        | 2 (~863 k)   | `paso-10` |
 | 11   | QA final, seguridad, imagen de producción, documentación y entrega      | 2026-09-07 21:00 | 2026-09-08 01:35 | 275 min (con pausa) | ~200 k        | 2 (~1.100 k) | `v1.0.0`  |
+| 12   | Eliminar proyectos (UC-39): modelo, servicio, API, diálogo y pruebas    | 2026-09-08 01:45 | 2026-09-08 02:05 | 20 min              | ~55 k         | 0            | `paso-12` |
 
 ## Totales
 
-| Concepto          | Valor                                                                                |
-| ----------------- | ------------------------------------------------------------------------------------ |
-| Tiempo acumulado  | 827 min                                                                              |
-| Tokens acumulados | ~1.666 k en la sesión principal + ~2.962 k en subagentes                             |
-| Pasos completados | 12 de 12 del plan original (0–11); el Paso 12 (eliminar proyectos) queda planificado |
+| Concepto          | Valor                                                                          |
+| ----------------- | ------------------------------------------------------------------------------ |
+| Tiempo acumulado  | 847 min                                                                        |
+| Tokens acumulados | ~1.721 k en la sesión principal + ~2.962 k en subagentes                       |
+| Pasos completados | 13: los 12 del plan original (0–11) y el Paso 12 que pidió el usuario al final |

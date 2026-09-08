@@ -12,12 +12,13 @@ En la columna de pruebas, `engine/` abrevia `packages/engine/tests/`, `api/` abr
 
 ## Proyectos
 
-| UC    | Funcionalidad                 | Estado   | Archivos principales                                                              | Prueba                                                               |
-| ----- | ----------------------------- | -------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| UC-01 | Crear proyecto                | Completa | `src/components/projects/project-dialog.tsx`, `src/lib/services/projects.ts`      | `e2e/table.spec.ts` · `api/api.integration.test.ts`                  |
-| UC-02 | Duplicar proyecto             | Completa | `src/lib/services/projects.ts`, `src/app/api/projects/[id]/duplicate/route.ts`    | `e2e/qa-checklist.spec.ts`                                           |
-| UC-03 | Archivar y restaurar proyecto | Completa | `src/components/projects/projects-page.tsx`, `src/app/api/projects/[id]/route.ts` | `api/security.integration.test.ts` — proyecto archivado              |
-| UC-04 | Calendario laboral y feriados | Completa | `src/components/settings/settings-view.tsx`, `src/lib/services/calendar.ts`       | `engine/calendar.test.ts` · `api/api.integration.test.ts` — feriados |
+| UC    | Funcionalidad                 | Estado   | Archivos principales                                                                | Prueba                                                                  |
+| ----- | ----------------------------- | -------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| UC-01 | Crear proyecto                | Completa | `src/components/projects/project-dialog.tsx`, `src/lib/services/projects.ts`        | `e2e/table.spec.ts` · `api/api.integration.test.ts`                     |
+| UC-02 | Duplicar proyecto             | Completa | `src/lib/services/projects.ts`, `src/app/api/projects/[id]/duplicate/route.ts`      | `e2e/qa-checklist.spec.ts`                                              |
+| UC-03 | Archivar y restaurar proyecto | Completa | `src/components/projects/projects-page.tsx`, `src/app/api/projects/[id]/route.ts`   | `api/security.integration.test.ts` — proyecto archivado                 |
+| UC-39 | Eliminar proyecto             | Completa | `src/components/projects/delete-project-dialog.tsx`, `src/lib/services/projects.ts` | `api/delete-project.integration.test.ts` · `e2e/delete-project.spec.ts` |
+| UC-04 | Calendario laboral y feriados | Completa | `src/components/settings/settings-view.tsx`, `src/lib/services/calendar.ts`         | `engine/calendar.test.ts` · `api/api.integration.test.ts` — feriados    |
 
 ## Tareas y WBS
 
@@ -124,7 +125,7 @@ Medidas el 2026-09-07 con los comandos indicados.
 | Integración (`vitest run --project integration`) | 5        | 40      |
 | **Total `npm test`**                             | **29**   | **281** |
 
-End to end: 31 casos verdes (24 en Chromium y 7 repetidos en Firefox para ingreso y tabla), más el
+End to end: 33 casos verdes (26 en Chromium y 7 repetidos en Firefox para ingreso y tabla), más el
 recorrido de QA de 30 verificaciones (`npm run test:e2e:qa`) y la prueba de rendimiento, que se
 ejecutan aparte. La lista de verificación y su evidencia están en
 [`docs/qa/checklist.md`](qa/checklist.md) y `docs/qa/evidencia/`.

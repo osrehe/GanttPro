@@ -162,8 +162,47 @@ export async function updateProject(
 }
 
 /** Elimina el proyecto y todo su contenido (cascada). */
-export async function deleteProject(projectId: string): Promise<void> {
-  await prisma.project.delete({ where: { id: projectId } });
+/** Resumen de lo que tenía un proyecto al borrarlo (UC-39). */
+export interface ProjectDeletionResult {
+  readonly projectName: string;
+  readonly taskCount: number;
+  readonly dependencyCount: number;
+  readonly resourceCount: number;
+}
+
+/**
+ * Elimina el proyecto y todo lo que cuelga de él (UC-39). Es irreversible: para sacarlo de la vista
+ * sin perderlo está archivar. El `AuditLog` del proyecto se borra en cascada, así que la operación
+ * deja una fila en `ProjectDeletion` con el nombre, quién, cuándo y los conteos.
+ */
+export async function deleteProject(
+  projectId: string,
+  userId: string,
+): Promise<ProjectDeletionResult> {
+  return prisma.$transaction(async (tx) => {
+    const project = await tx.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, name: true },
+    });
+    if (!project) throw new ApiError("NOT_FOUND", "El proyecto no existe", { projectId });
+    const [taskCount, dependencyCount, resourceCount] = await Promise.all([
+      tx.task.count({ where: { projectId } }),
+      tx.dependency.count({ where: { projectId } }),
+      tx.resource.count({ where: { projectId } }),
+    ]);
+    await tx.project.delete({ where: { id: projectId } });
+    await tx.projectDeletion.create({
+      data: {
+        projectId,
+        projectName: project.name,
+        deletedById: userId,
+        taskCount,
+        dependencyCount,
+        resourceCount,
+      },
+    });
+    return { projectName: project.name, taskCount, dependencyCount, resourceCount };
+  });
 }
 
 /** Duplica un proyecto: calendarios, tareas, dependencias, recursos y asignaciones (sin líneas base). */

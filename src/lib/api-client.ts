@@ -90,7 +90,14 @@ export const api = {
     full: (id: string) => get<ProjectFullDto>(`/api/projects/${id}/full`),
     update: (id: string, input: UpdateProjectInput) =>
       patch<ProjectDto>(`/api/projects/${id}`, input),
-    remove: (id: string) => del<{ deleted: true }>(`/api/projects/${id}`),
+    remove: (id: string) =>
+      del<{
+        deleted: true;
+        projectName: string;
+        taskCount: number;
+        dependencyCount: number;
+        resourceCount: number;
+      }>(`/api/projects/${id}`),
     duplicate: (id: string) => post<ProjectDto>(`/api/projects/${id}/duplicate`),
     calendar: (id: string) => get<CalendarDto>(`/api/projects/${id}/calendar`),
     updateCalendar: (id: string, input: UpdateCalendarInput) =>

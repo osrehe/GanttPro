@@ -4,6 +4,26 @@ Todos los cambios relevantes de GanttPro. El formato sigue
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.1.0] — 2026-09-08
+
+### Añadido
+
+**Eliminar proyectos (UC-39).** Un administrador del proyecto puede borrarlo definitivamente desde
+su tarjeta. El diálogo enumera lo que se pierde (tareas, dependencias, recursos, líneas base,
+comentarios, enlaces compartidos y el historial), ofrece descargar antes el libro Excel y exige
+escribir el nombre exacto para habilitar el botón. El borrado ocurre en una transacción y deja una
+fila en la tabla nueva `ProjectDeletion` con el nombre, quién lo borró, cuándo y cuántas tareas,
+dependencias y recursos tenía; esa huella sobrevive porque el historial del proyecto se borra con él.
+Archivar sigue siendo la vía reversible. `DELETE /api/projects/:id` funciona también sobre
+proyectos archivados y devuelve esos conteos.
+
+### Corregido
+
+- El sondeo de cambios de otras personas recargaba el proyecto mientras alguien escribía en una
+  celda y le borraba lo tecleado; ahora también se detiene mientras hay una celda en edición.
+- Las barras de avance de las tarjetas no tenían nombre accesible y el listado de proyectos no
+  declaraba título de página.
+
 ## [1.0.0] — 2026-09-07
 
 Primera versión completa. Se construyó siguiendo un plan de doce pasos; cada paso cerró con sus

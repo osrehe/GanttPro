@@ -9,7 +9,7 @@ aplicación: la interfaz y este manual se mantienen juntos.
 ## Índice
 
 1. [Ingresar](#ingresar)
-2. [Crear un proyecto](#crear-un-proyecto)
+2. [Crear un proyecto](#crear-un-proyecto) · [Eliminar un proyecto](#eliminar-un-proyecto)
 3. [Armar la estructura de trabajo](#armar-la-estructura-de-trabajo)
 4. [Fechas y duraciones](#fechas-y-duraciones)
 5. [Dependencias](#dependencias)
@@ -49,6 +49,18 @@ hasta que marques **Mostrar archivados**.
 
 Al abrir un proyecto aparecen las vistas en la parte superior: **Tabla**, **Gantt**, **Recursos**,
 **Dashboard**, **Líneas base** y **Auditoría**.
+
+### Eliminar un proyecto
+
+Archivar esconde el proyecto y lo deja de solo lectura, pero no lo pierde. **Eliminar** sí: borra el
+proyecto con sus tareas, dependencias, recursos, líneas base, comentarios, enlaces compartidos y su
+historial de cambios, y no hay forma de recuperarlo desde la aplicación.
+
+Solo quien es administrador del proyecto ve el botón habilitado. El diálogo enumera lo que se va a
+perder, ofrece **Descargar una copia en Excel antes de borrar** y pide escribir el nombre exacto del
+proyecto: hasta que coincida, el botón sigue apagado. Después del borrado queda un registro interno
+con el nombre, quién lo eliminó, cuándo y cuánto contenía, para poder responder más adelante qué
+pasó con ese proyecto.
 
 ## Armar la estructura de trabajo
 

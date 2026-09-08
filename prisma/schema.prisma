@@ -86,14 +86,15 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships     ProjectMember[]
-  createdProjects Project[]       @relation("ProjectCreatedBy")
-  updatedTasks    Task[]          @relation("TaskUpdatedBy")
-  auditLogs       AuditLog[]
-  comments        Comment[]
-  baselines       Baseline[]
-  shareLinks      ShareLink[]
-  settings        Setting[]
+  memberships      ProjectMember[]
+  createdProjects  Project[]         @relation("ProjectCreatedBy")
+  updatedTasks     Task[]            @relation("TaskUpdatedBy")
+  auditLogs        AuditLog[]
+  comments         Comment[]
+  baselines        Baseline[]
+  shareLinks       ShareLink[]
+  settings         Setting[]
+  projectDeletions ProjectDeletion[]
 }
 
 model ProjectMember {
@@ -366,6 +367,25 @@ model ShareLink {
 }
 
 /// Configuración global (clave/valor). Claves v1: ufValue, ufValueDate, dateFormat, displayCurrency, logoUrl.
+/// Registro de proyectos eliminados (UC-39). Sobrevive al proyecto: cuando este se borra, su
+/// AuditLog se va en cascada y esta fila es la única huella que queda.
+model ProjectDeletion {
+  id              String   @id @default(cuid())
+  /// Id del proyecto borrado. Sin clave foránea: el proyecto ya no existe.
+  projectId       String
+  projectName     String
+  deletedById     String
+  deletedAt       DateTime @default(now())
+  taskCount       Int
+  dependencyCount Int
+  resourceCount   Int
+
+  deletedBy User @relation(fields: [deletedById], references: [id])
+
+  @@index([deletedById])
+  @@index([deletedAt])
+}
+
 model Setting {
   key         String   @id
   value       Json

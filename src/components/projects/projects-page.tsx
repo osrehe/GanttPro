@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, Copy, Pencil, Plus, Users } from "lucide-react";
+import { Archive, ArchiveRestore, Copy, Pencil, Plus, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { api } from "@/lib/api-client";
 import { formatDateCl } from "@/lib/dates";
 import type { ProjectSummaryDto } from "@/lib/dto";
 import { describeError } from "@/stores/project-store";
+import { DeleteProjectDialog } from "./delete-project-dialog";
 import { ProjectDialog } from "./project-dialog";
 
 export function ProjectsPage() {
@@ -23,6 +24,7 @@ export function ProjectsPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<ProjectSummaryDto | null | "new">(null);
   const [sharing, setSharing] = useState<ProjectSummaryDto | null>(null);
+  const [deleting, setDeleting] = useState<ProjectSummaryDto | null>(null);
   const projects = useQuery({ queryKey: ["projects"], queryFn: api.projects.list });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -163,11 +165,33 @@ export function ProjectsPage() {
                     <Archive className="size-4" />
                   )}
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Eliminar"
+                  title={
+                    p.role === "ADMIN"
+                      ? "Eliminar definitivamente"
+                      : "Solo un administrador del proyecto puede eliminarlo"
+                  }
+                  className="text-destructive hover:text-destructive"
+                  data-testid="delete-project"
+                  disabled={p.role !== "ADMIN"}
+                  onClick={() => setDeleting(p)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </CardFooter>
             </Card>
           ))}
         </div>
       )}
+
+      <DeleteProjectDialog
+        project={deleting}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        onDeleted={() => void invalidate()}
+      />
 
       {sharing ? (
         <MembersDialog

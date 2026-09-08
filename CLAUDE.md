@@ -6,10 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GanttPro**: aplicación web de planificación de proyectos con cartas Gantt (WBS jerárquico,
 dependencias FS/SS/FF/SF con reprogramación automática, ruta crítica, recursos, líneas base,
-exportación Excel/PDF). Se construyó siguiendo un plan de 12 pasos (0–11). Estado actual: **versión
-1.0.0 entregada**: los pasos 0–11 del plan están cerrados. Hay un Paso 12 planificado a pedido del
-usuario, todavía sin implementar: eliminar proyectos (UC-39). El resto del trabajo nuevo sale del
-backlog (`docs/backlog.md`).
+exportación Excel/PDF). Se construyó siguiendo un plan de 12 pasos (0–11). Estado actual: **plan
+terminado**: pasos 0–12 cerrados. La versión 1.0.0 está etiquetada y después se sumó el Paso 12
+(eliminar proyectos, UC-39). El trabajo nuevo sale del backlog (`docs/backlog.md`).
 
 Fuentes de verdad, en este orden:
 
@@ -229,6 +228,11 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   multietapa con salida `standalone` y Chromium del sistema, y `docker-compose.prod.yml` levanta
   base de datos y aplicación. La entrega está descrita en `docs/entrega.md`, `CHANGELOG.md` y
   `docs/backlog.md`.
+- **Eliminar proyectos (Paso 12, UC-39)**: `deleteProject` borra el proyecto en una transacción y
+  escribe `ProjectDeletion` (nombre, quién, cuándo y conteos), porque el `AuditLog` del proyecto se
+  va en cascada. `DELETE /api/projects/:id` exige ADMIN y funciona también sobre proyectos
+  archivados. En la interfaz, `delete-project-dialog.tsx` pide escribir el nombre exacto y ofrece
+  descargar antes el libro Excel. Archivar sigue siendo la vía reversible.
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`

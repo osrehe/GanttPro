@@ -1,6 +1,6 @@
 # Plan de pasos — GanttPro
 
-**Estado actual:** Pasos 0–11 completados y versión 1.0.0 entregada · Paso 12 (eliminar proyectos) planificado a pedido del usuario, aún sin implementar. Ver tabla de pasos y estado por caso de uso al final.
+**Estado actual:** Plan terminado: pasos 0–12 completados. La versión 1.0.0 está etiquetada y el Paso 12 (eliminar proyectos) se entregó después. Ver tabla de pasos y estado por caso de uso al final.
 
 Versión 2 (2026-09-06). Fuente de verdad del orden de trabajo. Los prompts detallados de cada paso
 están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
@@ -48,7 +48,7 @@ están en `prompt-claude-code-gantt.md` en la raíz del repositorio.
 | 9    | Exportación e importación                              | Excel, PDF vía `/print/gantt` + Puppeteer, PNG, import Excel/CSV y MSPDI                                                                       | Round-trip Excel; PDF con páginas y texto "1.1"; round-trip plantilla; import MSPDI sin pérdida                                 | Completado |
 | 10   | Roles, colaboración y pulido                           | `ProjectMember`, `ShareLink`, polling, comentarios, atajos, modo oscuro, accesibilidad, configuración                                          | Lector no edita (UI y 403); dos contextos ven cambios en < 3 s; axe sin violaciones críticas                                    | Completado |
 | 11   | QA final y entrega                                     | Suite completa, checklist de 30 verificaciones con evidencia, Lighthouse, seguridad, README, manual, CHANGELOG, Dockerfile, v1.0.0             | `build` sin warnings; suite 100% verde; checklist sin fallos abiertos; ninguna fila "parcial" sin backlog                       | Completado |
-| 12   | Eliminar proyectos                                     | `ProjectDeletion` en Prisma, `DELETE /api/projects/:id` con registro y auditoría, diálogo de confirmación por nombre con copia previa en Excel | e2e: el administrador escribe el nombre y el proyecto desaparece; el editor recibe 403; el enlace compartido deja de resolver   | Pendiente  |
+| 12   | Eliminar proyectos                                     | `ProjectDeletion` en Prisma, `DELETE /api/projects/:id` con registro y auditoría, diálogo de confirmación por nombre con copia previa en Excel | e2e: el administrador escribe el nombre y el proyecto desaparece; el editor recibe 403; el enlace compartido deja de resolver   | Completado |
 
 ## Matriz paso ↔ casos de uso
 
@@ -117,4 +117,4 @@ Se actualiza al cerrar cada paso. Estados: **Pendiente** → **Engine** (lógica
 | UC-36 | Historial de cambios              | Completado | 5 · 8          | vista Auditoría con filtros por tarea, usuario y fecha                                                                      |
 | UC-37 | Configuración global              | Completado | 8 · 10         | página Configuración con valor UF, moneda, formato de fechas y logo de las exportaciones                                    |
 | UC-38 | Costos                            | Completado | 3 · 8          | costo planificado/consumido en el dashboard con conversión UF/CLP; adaptador UfProvider                                     |
-| UC-39 | Eliminar proyecto                 | Pendiente  | 12             | borrado definitivo con confirmación por nombre y registro en `ProjectDeletion`                                              |
+| UC-39 | Eliminar proyecto                 | Completado | 12             | borrado definitivo con confirmación por nombre, copia previa en Excel y registro en `ProjectDeletion`                       |

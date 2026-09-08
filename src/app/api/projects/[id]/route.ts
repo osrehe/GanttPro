@@ -21,9 +21,10 @@ export const PATCH = handle<Ctx>(async (request, context) => {
   return ok(await updateProject(id, access.user.id, input));
 });
 
+/** Elimina el proyecto definitivamente (UC-39). Solo ADMIN; también sirve si está archivado. */
 export const DELETE = handle<Ctx>(async (_request, context) => {
   const { id } = await routeParams(context);
-  await requireProjectAccess(id, "ADMIN");
-  await deleteProject(id);
-  return ok({ deleted: true });
+  const access = await requireProjectAccess(id, "ADMIN", { allowArchived: true });
+  const deleted = await deleteProject(id, access.user.id);
+  return ok({ deleted: true, ...deleted });
 });
