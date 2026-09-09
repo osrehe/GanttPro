@@ -17,9 +17,10 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
+  type Ref,
 } from "react";
 import { TaskSheet } from "@/components/table/task-sheet";
+import { useColumnWidths } from "@/hooks/use-column-widths";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { todayIso } from "@/lib/dates";
@@ -30,7 +31,7 @@ import { patchTaskCommand, editableSnapshot } from "@/stores/commands";
 import { depthOf, useProjectStore } from "@/stores/project-store";
 import { DependencyPopover, type ArrowPopoverState } from "./dependency-popover";
 import { GanttHeader } from "./gantt-header";
-import { GanttLeftPane } from "./gantt-left-pane";
+import { GANTT_COLUMNS, GANTT_COLUMNS_VIEW, GanttLeftPane } from "./gantt-left-pane";
 import {
   HEADER_HEIGHT,
   ROW_HEIGHT,
@@ -46,8 +47,6 @@ import {
 import { GanttTimeline, type BaselineSpan } from "./gantt-timeline";
 import { GanttToolbar } from "./gantt-toolbar";
 import { useGanttInteractions } from "./use-gantt-interactions";
-
-const DEFAULT_LEFT_WIDTH = 440;
 
 /** Vista Gantt interactiva (UC-24): tabla reducida + línea de tiempo SVG sobre el mismo store. */
 export function GanttView() {
@@ -71,7 +70,6 @@ export function GanttView() {
 
   const [scale, setScale] = useState<TimeScale>("day");
   const [pxPerDay, setPxPerDay] = useState<number | undefined>(undefined);
-  const [leftWidth, setLeftWidth] = useState(DEFAULT_LEFT_WIDTH);
   const [showCritical, setShowCritical] = useState(true);
   const [baselineId, setBaselineId] = useState<string | null>(null);
   const [colorMode, setColorMode] = useState<ColorMode>("task");
@@ -80,6 +78,10 @@ export function GanttView() {
   const [popover, setPopover] = useState<ArrowPopoverState | null>(null);
   const [viewport, setViewport] = useState({ scrollTop: 0, height: 600, width: 1200 });
   const [exporting, setExporting] = useState(false);
+  // Anchos de columna del panel izquierdo: redimensionables con el ratón y recordados por
+  // navegador (UC-40). El ancho del panel es la suma de sus columnas.
+  const columns = useColumnWidths(GANTT_COLUMNS_VIEW, GANTT_COLUMNS);
+  const leftWidth = columns.total;
   const scrollRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const previewRef = useRef<SVGRectElement>(null);
@@ -202,23 +204,6 @@ export function GanttView() {
     setScale(best.scale);
     setPxPerDay(clampPxPerDay(best.pxPerDay));
   }, [viewport.width, leftWidth, range.from, range.to]);
-
-  const onResizeStart = useCallback(
-    (event: ReactPointerEvent) => {
-      event.preventDefault();
-      const startX = event.clientX;
-      const startWidth = leftWidth;
-      const onMove = (e: PointerEvent) =>
-        setLeftWidth(Math.max(240, Math.min(900, startWidth + e.clientX - startX)));
-      const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-      };
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-    },
-    [leftWidth],
-  );
 
   // Exportación PNG del Gantt visible (UC-28): también la dispara el menú Exportar del header.
   const exportPng = useCallback(async () => {
@@ -370,15 +355,17 @@ export function GanttView() {
       >
         <div
           className="flex"
+          ref={columns.hostRef as Ref<HTMLDivElement>}
           style={{
-            width: leftWidth + axis.width,
+            ...columns.varStyle,
+            width: columns.totalExpression(axis.width),
             minHeight: HEADER_HEIGHT + rows.length * ROW_HEIGHT,
           }}
         >
           <GanttLeftPane
             rows={rows}
             range={rowRange}
-            width={leftWidth}
+            width={columns.totalExpression()}
             selectedTaskId={selectedTaskId}
             highlighted={highlighted}
             collapsed={collapsed}
@@ -387,7 +374,8 @@ export function GanttView() {
             onSelect={select}
             onOpenDetail={openDetail}
             onToggle={toggleCollapsed}
-            onResizeStart={onResizeStart}
+            onColumnResizeStart={columns.startResize}
+            onColumnReset={columns.resetColumn}
           />
           <div className="relative" style={{ width: axis.width }}>
             <div className="sticky top-0 z-10">

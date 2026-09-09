@@ -771,6 +771,7 @@ Fin, Duración, % Avance, Recursos, Predecesoras, Estado, y menú de acciones po
   deshace/rehace, "?" abre la ayuda de atajos.
 - Expandir/colapsar con clic en el triángulo o con ← / → sobre la celda Nombre. El estado de
   colapso se recuerda por proyecto en el navegador.
+- El ancho de cada columna se cambia arrastrando el borde derecho de su encabezado (UC-40).
 - Las celdas derivadas (resumen, `wbsCode`) no son editables.
 - Las filas devueltas en `affected` se resaltan 1 segundo.
 - Un `VIEWER` ve la misma tabla sin modo edición ni menú de acciones.
@@ -789,8 +790,9 @@ Fin, Duración, % Avance, Recursos, Predecesoras, Estado, y menú de acciones po
 
 **Actor:** editor o lector · **Rol mínimo:** `VIEWER` (lectura), `EDITOR` (interacción) · **Paso del plan:** 7
 
-Panel izquierdo con la tabla reducida (WBS, Nombre, Inicio, Fin) sincronizada verticalmente con el
-panel derecho de la línea de tiempo; divisor redimensionable.
+Panel izquierdo con la tabla reducida (WBS, Nombre, Inicio, Fin, Pred.) sincronizada verticalmente
+con el panel derecho de la línea de tiempo; cada columna del panel es redimensionable y el panel mide
+lo que suman sus columnas (UC-40).
 
 **Reglas:**
 
@@ -857,6 +859,41 @@ tabla, el Gantt o el panel de detalle.
   dependencia desaparece y B vuelve a su `anchorDate`.
 - Dado dos comandos deshechos, cuando el editor ejecuta un comando nuevo, entonces Ctrl+Y no hace
   nada.
+
+### UC-40 — Ajustar el ancho de las columnas
+
+**Actor:** cualquier persona con acceso al proyecto · **Rol mínimo:** `VIEWER` · **Paso del plan:** posterior a la v1.0.0
+
+Cambia con el ratón el ancho de las columnas de la vista Tabla y del panel izquierdo del Gantt. Es
+una preferencia de quien mira: no toca los datos del proyecto ni lo que ven las demás personas.
+
+**Reglas:**
+
+- Cada encabezado tiene un tirador en su borde derecho: arrastrarlo cambia el ancho de esa columna y
+  doble clic lo devuelve al valor por omisión. En el Gantt, el tirador de la última columna es el
+  separador de alto completo del borde derecho del panel, que sigue funcionando como divisor.
+- El ancho queda entre el mínimo de la columna (nunca menor que su contenido mínimo legible) y 900 px.
+  Al llegar a un extremo el arrastre deja de tener efecto en vez de rebotar.
+- El panel del Gantt mide lo que suman sus columnas: al ensanchar una, el panel crece y la línea de
+  tiempo se corre; la geometría de las barras no cambia.
+- Los anchos se guardan por vista en el navegador (`localStorage`, claves
+  `ganttpro:column-widths:table` y `ganttpro:column-widths:gantt`) y se aplican a todos los
+  proyectos. Un navegador sin almacenamiento disponible usa los anchos por omisión y sigue
+  funcionando.
+- Un valor guardado que ya no sea válido (columna eliminada, número fuera de rango o dato corrupto)
+  se descarta en silencio y esa columna vuelve a su ancho por omisión.
+- Los anchos son de pantalla: las exportaciones a Excel, PDF y PNG conservan su propio diseño.
+
+**Criterios de aceptación:**
+
+- Dado la vista Tabla con la columna Nombre en 300 px, cuando se arrastra su tirador 120 px a la
+  derecha, entonces la columna y sus celdas miden 420 px, y siguen midiendo lo mismo después de
+  recargar la página.
+- Dado esa misma columna ensanchada, cuando se hace doble clic en su tirador, entonces vuelve a 300 px.
+- Dado la columna WBS, cuando se arrastra su tirador 400 px a la izquierda, entonces se detiene en su
+  mínimo de 48 px y no desaparece.
+- Dado el panel del Gantt en 440 px, cuando se ensancha la columna Nombre 90 px, entonces el panel
+  mide 530 px, la tabla reducida muestra los nombres completos y las barras no cambian de posición.
 
 ---
 

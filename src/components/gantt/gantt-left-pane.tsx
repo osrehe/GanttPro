@@ -2,6 +2,8 @@
 
 import { ChevronDown, ChevronRight, Diamond } from "lucide-react";
 import type { PointerEvent } from "react";
+import { ColumnResizeHandle } from "@/components/columns/column-resize-handle";
+import { columnVar, type ColumnSpec } from "@/lib/column-widths";
 import { formatDateCl } from "@/lib/dates";
 import type { DependencyDto, TaskDto } from "@/lib/dto";
 import { formatPredecessors } from "@/lib/predecessors";
@@ -9,10 +11,30 @@ import { cn } from "@/lib/utils";
 import { depthOf } from "@/stores/project-store";
 import { HEADER_HEIGHT, ROW_HEIGHT } from "./gantt-model";
 
+export type GanttColumnKey = "wbs" | "name" | "start" | "end" | "pred";
+
+/**
+ * Columnas de la tabla reducida. La suma de los anchos por omisión (440 px) es el ancho inicial del
+ * panel; al arrastrar un tirador el panel crece o se encoge con la columna.
+ */
+export const GANTT_COLUMNS: Array<ColumnSpec<GanttColumnKey> & { label: string }> = [
+  { key: "wbs", label: "WBS", defaultWidth: 52, minWidth: 40 },
+  { key: "name", label: "Nombre", defaultWidth: 132, minWidth: 120 },
+  { key: "start", label: "Inicio", defaultWidth: 84, minWidth: 70 },
+  { key: "end", label: "Fin", defaultWidth: 84, minWidth: 70 },
+  { key: "pred", label: "Pred.", defaultWidth: 88, minWidth: 60 },
+];
+
+/** Identificador de la vista en `localStorage` y prefijo de las variables CSS de ancho. */
+export const GANTT_COLUMNS_VIEW = "gantt";
+
+const LAST_COLUMN: GanttColumnKey = "pred";
+
 interface Props {
   rows: readonly TaskDto[];
   range: { start: number; end: number };
-  width: number;
+  /** Ancho del panel como expresión CSS (suma de las variables de columna). */
+  width: string;
   selectedTaskId: string | null;
   highlighted: Record<string, number>;
   collapsed: Record<string, true>;
@@ -21,10 +43,13 @@ interface Props {
   onSelect(taskId: string): void;
   onOpenDetail(taskId: string): void;
   onToggle(taskId: string): void;
-  onResizeStart(event: PointerEvent): void;
+  onColumnResizeStart(key: GanttColumnKey, event: PointerEvent): void;
+  onColumnReset(key: GanttColumnKey): void;
 }
 
-const COLS = { wbs: 52, start: 84, end: 84, pred: 88 } as const;
+function colStyle(key: GanttColumnKey) {
+  return { width: columnVar(GANTT_COLUMNS_VIEW, key) } as const;
+}
 
 /** Tabla reducida del Gantt (WBS, Nombre, Inicio, Fin, Predecesoras), sincronizada con la línea de tiempo. */
 export function GanttLeftPane({
@@ -39,34 +64,37 @@ export function GanttLeftPane({
   onSelect,
   onOpenDetail,
   onToggle,
-  onResizeStart,
+  onColumnResizeStart,
+  onColumnReset,
 }: Props) {
-  const nameWidth = Math.max(120, width - COLS.wbs - COLS.start - COLS.end - COLS.pred);
+  const paneHeight = HEADER_HEIGHT + rows.length * ROW_HEIGHT;
   return (
     <div
       className="bg-background sticky left-0 z-20 shrink-0 border-r"
-      style={{ width, height: HEADER_HEIGHT + rows.length * ROW_HEIGHT }}
+      style={{ width, height: paneHeight }}
       data-testid="gantt-left-pane"
     >
       <div
-        className="bg-muted/60 sticky top-0 z-30 flex items-end border-b text-xs font-medium"
+        className="bg-muted/60 sticky top-0 z-30 flex items-stretch border-b text-xs font-medium"
         style={{ height: HEADER_HEIGHT }}
       >
-        <div className="px-2 py-1.5" style={{ width: COLS.wbs }}>
-          WBS
-        </div>
-        <div className="px-2 py-1.5" style={{ width: nameWidth }}>
-          Nombre
-        </div>
-        <div className="px-2 py-1.5" style={{ width: COLS.start }}>
-          Inicio
-        </div>
-        <div className="px-2 py-1.5" style={{ width: COLS.end }}>
-          Fin
-        </div>
-        <div className="px-2 py-1.5" style={{ width: COLS.pred }}>
-          Pred.
-        </div>
+        {GANTT_COLUMNS.map((c) => (
+          <div
+            key={c.key}
+            className="relative flex items-end overflow-hidden px-2 py-1.5 whitespace-nowrap"
+            style={colStyle(c.key)}
+          >
+            {c.label}
+            {/* La última columna la redimensiona el separador de alto completo del borde derecho. */}
+            {c.key === LAST_COLUMN ? null : (
+              <ColumnResizeHandle
+                label={c.label}
+                onPointerDown={(e) => onColumnResizeStart(c.key, e)}
+                onDoubleClick={() => onColumnReset(c.key)}
+              />
+            )}
+          </div>
+        ))}
       </div>
       {rows.slice(range.start, range.end).map((task, i) => {
         const index = range.start + i;
@@ -93,14 +121,14 @@ export function GanttLeftPane({
           >
             <div
               className="text-muted-foreground truncate px-2"
-              style={{ width: COLS.wbs }}
+              style={colStyle("wbs")}
               data-col="wbs"
             >
               {task.wbsCode}
             </div>
             <div
               className="flex items-center gap-1 truncate px-2"
-              style={{ width: nameWidth, paddingLeft: 8 + depthOf(task) * 14 }}
+              style={{ ...colStyle("name"), paddingLeft: 8 + depthOf(task) * 14 }}
               data-col="name"
             >
               {task.isSummary ? (
@@ -127,19 +155,15 @@ export function GanttLeftPane({
                 {task.name}
               </span>
             </div>
-            <div
-              className="truncate px-2 tabular-nums"
-              style={{ width: COLS.start }}
-              data-col="start"
-            >
+            <div className="truncate px-2 tabular-nums" style={colStyle("start")} data-col="start">
               {formatDateCl(task.startDate)}
             </div>
-            <div className="truncate px-2 tabular-nums" style={{ width: COLS.end }} data-col="end">
+            <div className="truncate px-2 tabular-nums" style={colStyle("end")} data-col="end">
               {formatDateCl(task.endDate)}
             </div>
             <div
               className="text-muted-foreground truncate px-2"
-              style={{ width: COLS.pred }}
+              style={colStyle("pred")}
               data-col="predecessors"
             >
               {formatPredecessors(task.id, dependencies, tasksById)}
@@ -147,13 +171,14 @@ export function GanttLeftPane({
           </div>
         );
       })}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Redimensionar panel"
-        className="hover:bg-primary/40 absolute top-0 right-0 z-40 h-full w-1.5 cursor-col-resize"
-        style={{ height: HEADER_HEIGHT + rows.length * ROW_HEIGHT }}
-        onPointerDown={onResizeStart}
+      {/* Borde derecho del panel: redimensiona la última columna, de modo que el panel completo
+          crece o se encoge con el arrastre. */}
+      <ColumnResizeHandle
+        label="Pred."
+        className="z-40"
+        testId="gantt-pane-resize"
+        onPointerDown={(e) => onColumnResizeStart(LAST_COLUMN, e)}
+        onDoubleClick={() => onColumnReset(LAST_COLUMN)}
       />
     </div>
   );

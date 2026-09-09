@@ -78,6 +78,12 @@ Puedes construir todo el plan sin soltar el teclado:
 
 Los códigos WBS se renumeran solos cada vez que mueves algo: nunca tendrás que escribir un "1.2.3".
 
+**El ancho de cada columna es tuyo.** Apunta al borde derecho del encabezado —el cursor cambia a una
+flecha doble—, arrastra y la columna se ensancha o se angosta; un doble clic ahí mismo la devuelve a
+su ancho original. Lo mismo vale para la tabla reducida del Gantt, donde el borde derecho del panel
+completo sigue sirviendo de divisor. Cada navegador recuerda tus anchos para todos los proyectos, y
+las exportaciones a Excel, PDF y PNG mantienen su propio diseño.
+
 El panel de detalle tiene las pestañas **Campos**, **Dependencias**, **Recursos**, **Notas** y
 **Comentarios**.
 

@@ -4,6 +4,18 @@ Todos los cambios relevantes de GanttPro. El formato sigue
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.3.0] — 2026-09-09
+
+### Añadido
+
+**Ancho de columnas ajustable (UC-40).** En la vista Tabla y en el panel izquierdo del Gantt, el
+borde derecho de cada encabezado es un tirador: arrastrarlo cambia el ancho de esa columna y un doble
+clic lo devuelve al valor por omisión. Cada vista recuerda sus anchos en el navegador
+(`ganttpro:column-widths:table` y `ganttpro:column-widths:gantt`) y los aplica a todos los proyectos.
+En el Gantt el panel mide lo que suman sus columnas, así que el separador del borde derecho sigue
+funcionando como divisor. Los anchos van al CSS como variables, de modo que arrastrar no vuelve a
+dibujar las filas; las exportaciones conservan su propio diseño.
+
 ## [1.2.0] — 2026-09-08
 
 ### Cambiado

@@ -70,7 +70,8 @@ cálculo se implementa y prueba en `packages/engine` en ese paso, antes de expon
 | 11   | — (QA, documentación y entrega)                                                    | Verificación de UC-01…UC-38 en el checklist                                            |
 | 12   | UC-39                                                                              | —                                                                                      |
 
-Cobertura: los 38 casos de uso quedan asignados a un paso de entrega. UC-04 se divide entre el
+Cobertura: los 38 casos de uso del plan quedan asignados a un paso de entrega; UC-39 y UC-40 son
+encargos posteriores a la v1.0.0. UC-04 se divide entre el
 engine (Paso 2), el seed con feriados de Chile 2026 (Paso 4) y la interfaz de configuración (Paso 10).
 
 ## Estado por caso de uso
@@ -118,3 +119,4 @@ Se actualiza al cerrar cada paso. Estados: **Pendiente** → **Engine** (lógica
 | UC-37 | Configuración global              | Completado | 8 · 10         | página Configuración con valor UF, moneda, formato de fechas y logo de las exportaciones                                    |
 | UC-38 | Costos                            | Completado | 3 · 8          | costo planificado/consumido en el dashboard con conversión UF/CLP; adaptador UfProvider                                     |
 | UC-39 | Eliminar proyecto                 | Completado | 12             | borrado definitivo con confirmación por nombre, copia previa en Excel y registro en `ProjectDeletion`                       |
+| UC-40 | Ancho de columnas ajustable       | Completado | posterior      | tiradores en Tabla y en el panel del Gantt; doble clic restablece; el ancho se recuerda por vista en el navegador           |

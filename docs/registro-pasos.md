@@ -38,11 +38,12 @@ Encargos del usuario una vez entregada la versión 1.0.0. Se miden igual que los
 | Eliminar proyectos (UC-39)                                | 2026-09-08 01:45 | 2026-09-08 02:05 | 20 min   | ~55 k         | 0          | `v1.1.0` |
 | Revisión de rendimiento y sus cuatro correcciones         | 2026-09-08 02:10 | 2026-09-08 03:30 | 80 min   | ~85 k         | 0          | —        |
 | Rediseño (paleta morado y celeste, tipografía) y capturas | 2026-09-08 03:35 | 2026-09-08 05:10 | 95 min   | ~95 k         | 0          | `v1.2.0` |
+| Ancho de columnas ajustable en Tabla y Gantt (UC-40)      | 2026-09-09 03:05 | 2026-09-09 03:50 | 45 min   | ~70 k         | 0          | `v1.3.0` |
 
 ## Totales
 
 | Concepto          | Valor                                                                          |
 | ----------------- | ------------------------------------------------------------------------------ |
-| Tiempo acumulado  | 1.042 min (847 del plan y 195 de encargos posteriores)                         |
-| Tokens acumulados | ~1.956 k en la sesión principal + ~2.962 k en subagentes                       |
+| Tiempo acumulado  | 1.087 min (847 del plan y 240 de encargos posteriores)                         |
+| Tokens acumulados | ~2.026 k en la sesión principal + ~2.962 k en subagentes                       |
 | Pasos completados | 13: los 12 del plan original (0–11) y el Paso 12 que pidió el usuario al final |

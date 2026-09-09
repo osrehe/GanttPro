@@ -46,6 +46,9 @@ import {
   type TrackingStatus,
 } from "@ganttpro/engine";
 import { TrackingToolbar } from "@/components/tracking/tracking-toolbar";
+import { ColumnResizeHandle } from "@/components/columns/column-resize-handle";
+import { useColumnWidths } from "@/hooks/use-column-widths";
+import { columnVar, type ColumnSpec } from "@/lib/column-widths";
 import { formatDateCl } from "@/lib/dates";
 import type { TaskDto } from "@/lib/dto";
 import {
@@ -88,25 +91,60 @@ type ColumnKey =
  */
 const DEFAULT_ROW_HEIGHT = 30;
 
-const COLUMNS: Array<{
-  key: ColumnKey;
-  label: string;
-  width: string;
-  editable: boolean;
-  align?: "right";
-}> = [
-  { key: "wbs", label: "WBS", width: "w-20", editable: false },
-  { key: "name", label: "Nombre", width: "w-[300px]", editable: true },
-  { key: "start", label: "Inicio", width: "w-32", editable: true },
-  { key: "end", label: "Fin", width: "w-32", editable: true },
-  { key: "duration", label: "Duración", width: "w-24", editable: true, align: "right" },
-  { key: "progress", label: "% Avance", width: "w-24", editable: true, align: "right" },
-  { key: "resources", label: "Recursos", width: "w-44", editable: false },
-  { key: "predecessors", label: "Predecesoras", width: "w-40", editable: true },
-  { key: "status", label: "Estado", width: "w-36", editable: true },
-  { key: "expected", label: "Esperado", width: "w-24", editable: false, align: "right" },
-  { key: "deviation", label: "Desv.", width: "w-20", editable: false, align: "right" },
+/**
+ * Columnas de la grilla. `defaultWidth` es el ancho de partida y `minWidth` el tope al arrastrar;
+ * el ancho vigente lo administra `useColumnWidths` y viaja al CSS como variable.
+ */
+const COLUMNS: Array<
+  ColumnSpec<ColumnKey> & {
+    label: string;
+    editable: boolean;
+    align?: "right";
+  }
+> = [
+  { key: "wbs", label: "WBS", defaultWidth: 80, minWidth: 48, editable: false },
+  { key: "name", label: "Nombre", defaultWidth: 300, minWidth: 120, editable: true },
+  { key: "start", label: "Inicio", defaultWidth: 128, minWidth: 80, editable: true },
+  { key: "end", label: "Fin", defaultWidth: 128, minWidth: 80, editable: true },
+  {
+    key: "duration",
+    label: "Duración",
+    defaultWidth: 96,
+    minWidth: 64,
+    editable: true,
+    align: "right",
+  },
+  {
+    key: "progress",
+    label: "% Avance",
+    defaultWidth: 96,
+    minWidth: 64,
+    editable: true,
+    align: "right",
+  },
+  { key: "resources", label: "Recursos", defaultWidth: 176, minWidth: 80, editable: false },
+  { key: "predecessors", label: "Predecesoras", defaultWidth: 160, minWidth: 80, editable: true },
+  { key: "status", label: "Estado", defaultWidth: 144, minWidth: 80, editable: true },
+  {
+    key: "expected",
+    label: "Esperado",
+    defaultWidth: 96,
+    minWidth: 64,
+    editable: false,
+    align: "right",
+  },
+  {
+    key: "deviation",
+    label: "Desv.",
+    defaultWidth: 80,
+    minWidth: 56,
+    editable: false,
+    align: "right",
+  },
 ];
+
+/** Identificador de la vista en `localStorage` y prefijo de las variables CSS de ancho. */
+const TABLE_COLUMNS_VIEW = "table";
 
 const STATUS_LABEL: Record<TaskDto["status"], string> = {
   NOT_STARTED: "No iniciada",
@@ -182,6 +220,8 @@ export function TaskTable() {
   const focusRef = useRef<Focus>(focus);
   focusRef.current = focus;
   const editorRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
+  // Anchos de columna redimensionables y recordados por navegador (UC-40).
+  const columns = useColumnWidths(TABLE_COLUMNS_VIEW, COLUMNS);
 
   const selectedIndex = rows.findIndex((t) => t.id === selectedTaskId);
   const selected = selectedIndex >= 0 ? (rows[selectedIndex] as TaskDto) : null;
@@ -650,7 +690,8 @@ export function TaskTable() {
           <TooltipContent className="max-w-xs text-xs leading-5">
             Flechas: moverse · Enter/F2 o escribir: editar · Tab / Shift+Tab: indentar y desindentar
             · Insert: nueva tarea (Shift: subtarea) · Ctrl+←/→: colapsar/expandir · Supr: eliminar ·
-            Espacio: detalles · Ctrl+Z / Ctrl+Y: deshacer y rehacer
+            Espacio: detalles · Ctrl+Z / Ctrl+Y: deshacer y rehacer · Arrastra el borde derecho de
+            un encabezado para cambiar el ancho de la columna (doble clic: restablecer)
           </TooltipContent>
         </Tooltip>
       </div>
@@ -667,8 +708,19 @@ export function TaskTable() {
           role="grid"
           aria-label="Tareas del proyecto"
           aria-rowcount={rows.length}
-          className="w-full min-w-[1480px] table-fixed border-collapse text-sm"
+          ref={columns.hostRef as Ref<HTMLTableElement>}
+          className="w-full table-fixed border-collapse text-sm"
+          style={{ ...columns.varStyle, minWidth: columns.totalExpression() }}
         >
+          {/* Los anchos van en el `colgroup` como variables CSS: arrastrar el tirador solo cambia
+              la variable, sin volver a renderizar las filas. La última columna no tiene ancho y se
+              queda con el espacio sobrante para que el encabezado llegue hasta el borde. */}
+          <colgroup>
+            {COLUMNS.map((c) => (
+              <col key={c.key} style={{ width: columnVar(TABLE_COLUMNS_VIEW, c.key) }} />
+            ))}
+            <col />
+          </colgroup>
           <thead className="bg-muted/60 sticky top-0 z-10">
             <tr>
               {COLUMNS.map((c) => (
@@ -676,20 +728,25 @@ export function TaskTable() {
                   key={c.key}
                   scope="col"
                   className={cn(
-                    "border-b px-2 py-1.5 text-left font-medium",
-                    c.width,
+                    "relative overflow-hidden border-b px-2 py-1.5 text-left font-medium text-ellipsis whitespace-nowrap",
                     c.align === "right" && "text-right",
                   )}
                 >
                   {c.label}
+                  <ColumnResizeHandle
+                    label={c.label}
+                    onPointerDown={(e) => columns.startResize(c.key, e)}
+                    onDoubleClick={() => columns.resetColumn(c.key)}
+                  />
                 </th>
               ))}
+              <th aria-hidden className="border-b" />
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={COLUMNS.length} className="text-muted-foreground p-8 text-center">
+                <td colSpan={COLUMNS.length + 1} className="text-muted-foreground p-8 text-center">
                   No hay tareas. Crea la primera con el botón «Tarea» o la tecla Insert.
                 </td>
               </tr>
@@ -805,6 +862,7 @@ export function TaskTable() {
                       </td>
                     );
                   })}
+                  <td aria-hidden />
                 </tr>
               );
             })}

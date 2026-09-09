@@ -139,12 +139,14 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   `src/lib/predecessors.ts` (`parsePredecessors`, `formatPredecessors`, `diffPredecessors`). La tabla
   (`src/components/table/task-table.tsx`) es un grid propio con teclado: flechas, Enter/F2 o
   escribir para editar, Tab/Shift+Tab indentar, Insert nueva tarea (Shift: subtarea), Supr borrar,
-  Espacio detalles; Ctrl+Z/Y globales en `useShortcuts`. Al editar escribiendo no se selecciona el
+  Espacio detalles; Ctrl+Z/Y globales en `useShortcuts`. Los anchos de columna son ajustables
+  (ver «Anchos de columna»). Al editar escribiendo no se selecciona el
   contenido previo (`selectAll` solo con Enter/F2). Nunca llames a acciones del store dentro de un
   actualizador de `setState`.
 - **Gantt (Paso 7, `src/components/gantt`)**: `gantt-view.tsx` orquesta un único contenedor con
   scroll compartido: `GanttLeftPane` (tabla reducida, `position: sticky; left: 0`) y la línea de
-  tiempo (`GanttHeader` sticky arriba + `GanttTimeline` en SVG). La geometría viene del engine
+  tiempo (`GanttHeader` sticky arriba + `GanttTimeline` en SVG). El ancho del panel es la suma de sus
+  columnas ajustables (ver «Anchos de columna»). La geometría viene del engine
   (`createTimeAxis`, `layoutBars`, `layoutArrows`, `nonWorkingRanges`, `visibleRowRange`) a través
   del modelo puro `gantt-model.ts` (`ganttRows` es la misma `visibleTasks` que usa la tabla; test de
   consistencia con 50 operaciones aleatorias). Virtualización vertical con `visibleRowRange` (solo se
@@ -161,6 +163,16 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   Rendimiento medido en `e2e/gantt.perf.spec.ts` (se ejecuta aparte con `npm run test:e2e:perf`
   porque compite por CPU): marcas `project:hydrated` y `gantt:rendered` con `performance.mark`, y
   `window.__ganttDragStats` con el costo por evento de arrastre.
+- **Anchos de columna (UC-40, posterior a la v1.0.0)**: `src/lib/column-widths.ts` es la lógica pura
+  (topes, lectura y escritura de lo guardado, nombres de las variables CSS) y `useColumnWidths`
+  (`src/hooks/use-column-widths.ts`) el estado, el arrastre y la persistencia en `localStorage`
+  (`ganttpro:column-widths:table` y `:gantt`, comunes a todos los proyectos). Los anchos viajan al
+  CSS como variables (`--table-name`, `--gantt-name`): la tabla las consume en un `<colgroup>` y el
+  panel del Gantt en el `width` de cada celda, así que **el arrastre solo escribe una propiedad en el
+  elemento anfitrión y no vuelve a renderizar React**, igual que el arrastre de barras. El tirador
+  común es `src/components/columns/column-resize-handle.tsx` (doble clic restablece la columna); en
+  el Gantt el separador de alto completo del borde derecho es el tirador de la última columna. La
+  tabla lleva una columna final sin ancho para que el encabezado llegue al borde.
 - **Seguimiento (Paso 8, `src/components/tracking`)**: la fecha de estado vive en `Project.statusDate`
   (`TrackingToolbar` en la tabla y en el dashboard la editan con `api.projects.update`). Todo el
   cálculo es del engine en el cliente: `trackingStatus` (columnas Esperado/Desv. e indicador de
