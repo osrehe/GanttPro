@@ -1,10 +1,16 @@
 # Despliegue de producción en un servidor propio (ADR-004, ADR-012).
 #
 #   cp .env.example .env   # y ajusta DATABASE_URL, AUTH_SECRET y POSTGRES_PASSWORD
+#   (la aplicación no arranca si AUTH_SECRET conserva el valor de ejemplo o mide menos de 32)
 #   docker compose -f docker-compose.prod.yml up -d --build
 #
-# La primera vez, para cargar el proyecto de ejemplo:
+# La primera vez, para cargar el proyecto de ejemplo (exige una SEED_PASSWORD propia en .env;
+# en producción no hay contraseña por defecto):
 #   docker compose -f docker-compose.prod.yml run --rm app npx prisma db seed
+# Para que otra persona administre la configuración global (la imagen no trae tsx, así que en
+# producción se hace con SQL; en desarrollo existe `npm run db:make-admin -- <correo>`):
+#   docker compose -f docker-compose.prod.yml exec db psql -U ganttpro -d ganttpro \
+#     -c "UPDATE \"User\" SET \"isAdmin\" = true WHERE email = 'persona@empresa.cl'"
 
 services:
   db:
@@ -44,6 +50,13 @@ services:
       # Límites de peticiones; en producción rigen los valores estrictos por defecto.
       RATE_LIMIT_LOGIN_MAX: ${RATE_LIMIT_LOGIN_MAX:-10}
       RATE_LIMIT_API_MAX: ${RATE_LIMIT_API_MAX:-120}
+      RATE_LIMIT_LOGIN_ACCOUNT_MAX: ${RATE_LIMIT_LOGIN_ACCOUNT_MAX:-10}
+      RATE_LIMIT_PDF_MAX: ${RATE_LIMIT_PDF_MAX:-10}
+      PDF_MAX_CONCURRENCY: ${PDF_MAX_CONCURRENCY:-2}
+      # Proxies inversos delante de la aplicación que agregan su salto a X-Forwarded-For.
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+      # Solo la usa el seed; sin ella, sembrar en producción se rechaza.
+      SEED_PASSWORD: ${SEED_PASSWORD:-}
       # Inicio de sesión con Google (opcional).
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
       AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}

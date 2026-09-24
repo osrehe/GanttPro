@@ -30,7 +30,22 @@ import {
 
 const prisma = new PrismaClient();
 
-const SEED_PASSWORD = process.env.SEED_PASSWORD ?? "GanttPro2026!";
+/**
+ * Contraseña de los usuarios de ejemplo. En producción no hay valor por defecto: sembrar con la
+ * contraseña publicada en la documentación dejaría la cuenta de administración abierta.
+ */
+function seedPassword(): string {
+  const configured = process.env.SEED_PASSWORD?.trim();
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "En producción define SEED_PASSWORD antes de sembrar (no hay valor por defecto)",
+    );
+  }
+  return "GanttPro2026!";
+}
+
+const SEED_PASSWORD = seedPassword();
 
 interface FlatTask extends EngineTask {
   name: string;
@@ -88,8 +103,8 @@ async function main(): Promise<void> {
   for (const u of USERS) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { name: u.name, passwordHash },
-      create: { email: u.email, name: u.name, passwordHash },
+      update: { name: u.name, passwordHash, isAdmin: u.key === "admin" },
+      create: { email: u.email, name: u.name, passwordHash, isAdmin: u.key === "admin" },
     });
     users.set(u.key, user);
   }
@@ -255,7 +270,8 @@ async function main(): Promise<void> {
       `${deps.length} dependencias, ${RESOURCES.length} recursos, ${ASSIGNMENTS.length} asignaciones. ` +
       `Fin planificado: ${end}.`,
   );
-  console.info(`Usuarios: ${USERS.map((u) => u.email).join(", ")} · contraseña: ${SEED_PASSWORD}`);
+  // La contraseña no se imprime: el registro del contenedor puede quedar guardado o compartirse.
+  console.info(`Usuarios: ${USERS.map((u) => u.email).join(", ")} (contraseña: SEED_PASSWORD)`);
 }
 
 main()

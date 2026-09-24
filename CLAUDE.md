@@ -56,6 +56,7 @@ npm run db:migrate       # prisma migrate dev (crea/aplica migraciones en desarr
 npm run db:migrate:deploy
 npm run db:seed          # proyecto de demostración (46 tareas, 34 dependencias, 6 recursos) + 3 usuarios
 npm run db:seed:perf     # proyecto sintético de 1.110 tareas / 1.500 dependencias (requiere db:seed antes)
+npm run db:make-admin -- <correo>  # marca a un usuario como administrador de la instalación
 npm run db:reset         # prisma migrate reset --force (borra la BD, migra y siembra)
 npm run db:studio
 ```
@@ -74,7 +75,8 @@ lint, format:check, typecheck y test; un segundo job levanta Postgres, migra, si
 corre los e2e.
 
 Usuarios del seed: `admin@ganttpro.local` (ADMIN), `editor@ganttpro.local` (EDITOR),
-`lector@ganttpro.local` (VIEWER); contraseña `SEED_PASSWORD` (por defecto `GanttPro2026!`).
+`lector@ganttpro.local` (VIEWER); contraseña `SEED_PASSWORD` (por defecto `GanttPro2026!`, salvo en
+producción, donde es obligatoria). `admin@ganttpro.local` administra además la instalación.
 
 ## Stack
 
@@ -245,6 +247,19 @@ nada de sintaxis bash en `package.json`). `.gitattributes` fuerza LF en el repo.
   va en cascada. `DELETE /api/projects/:id` exige ADMIN y funciona también sobre proyectos
   archivados. En la interfaz, `delete-project-dialog.tsx` pide escribir el nombre exacto y ofrece
   descargar antes el libro Excel. Archivar sigue siendo la vía reversible.
+- **Revisión de seguridad (v1.4.0, ADR-013)**:
+  - La configuración global (`PATCH /api/settings`) exige `requireInstanceAdmin()` sobre
+    `User.isAdmin`, que se consulta en la base y no viaja en el JWT. `GET` devuelve `canEdit`.
+  - El logo pasa por `logoUrlSchema` (`https:` o imagen incrustada). Puppeteer intercepta las
+    peticiones con `isAllowedPrintRequest` (`src/lib/export/print-requests.ts`).
+  - Hay tope de PDF simultáneos (`PDF_MAX_CONCURRENCY`) y por usuario (`PDF_RULE`).
+  - `src/instrumentation.ts` impide arrancar en producción con un `AUTH_SECRET` inseguro
+    (`src/lib/env-check.ts`).
+  - La IP para el límite se lee desde la derecha de `X-Forwarded-For` (`TRUSTED_PROXY_HOPS`) y el
+    login se limita también por cuenta (`LOGIN_ACCOUNT_RULE`, en `authorize()`).
+  - `parseBody` lee con tope (`readBodyLimited`, 5 MB por defecto) y la importación revisa el ZIP
+    con `inspectZip` antes de exceljs.
+  - `response.ts` importa Auth.js: un test unitario que lo use debe simular `@/lib/auth`.
 - **Auditoría**: toda mutación pasa por `withAudit` de `src/lib/audit.ts`, que ejecuta la mutación y
   escribe `AuditLog` en la misma transacción (`operationId` agrupa cascadas).
 - **Vitest en la raíz con dos proyectos**: `engine` (raíz `packages/engine`, tests en `tests/`) y `web`

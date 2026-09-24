@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import type { UpdateSettingsInput } from "@/lib/schemas";
+import { logoUrlSchema, type UpdateSettingsInput } from "@/lib/schemas";
 
 /** Configuración global (UC-37). Claves v1 con sus valores por defecto. */
 export interface SettingsDto {
@@ -18,6 +18,11 @@ const DEFAULTS: SettingsDto = {
   logoUrl: null,
 };
 
+/** Respuesta de `/api/settings`: la configuración más si quien consulta puede cambiarla. */
+export interface SettingsResponseDto extends SettingsDto {
+  readonly canEdit: boolean;
+}
+
 export async function getSettings(): Promise<SettingsDto> {
   const rows = await prisma.setting.findMany();
   const map = new Map(rows.map((r) => [r.key, r.value]));
@@ -35,7 +40,8 @@ export async function getSettings(): Promise<SettingsDto> {
     ufValueDate: str(map.get("ufValueDate")),
     displayCurrency: currency === "CLP" ? "CLP" : DEFAULTS.displayCurrency,
     dateFormat: dateFormat === "yyyy-mm-dd" ? "yyyy-mm-dd" : DEFAULTS.dateFormat,
-    logoUrl: str(map.get("logoUrl")),
+    // Un valor guardado antes de validar el logo (o escrito a mano) no llega a Chromium.
+    logoUrl: logoUrlSchema.safeParse(str(map.get("logoUrl"))).data ?? null,
   };
 }
 

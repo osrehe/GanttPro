@@ -4,6 +4,37 @@ Todos los cambios relevantes de GanttPro. El formato sigue
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.4.0] — 2026-09-24
+
+### Seguridad
+
+Revisión de seguridad del código y de las dependencias
+([ADR-013](docs/adr/ADR-013-revision-de-seguridad.md)).
+
+- **Configuración global solo para quien administra la instalación.** Nuevo campo `User.isAdmin`:
+  la migración promueve al usuario más antiguo, el seed marca a `admin@ganttpro.local` y
+  `npm run db:make-admin -- <correo>` promueve a otros. El resto de los usuarios ve la configuración
+  en solo lectura.
+- **Logo de las exportaciones restringido** a `https:` o a una imagen PNG, JPEG, GIF o WebP
+  incrustada.
+- **Chromium aislado de la red.** Al generar un PDF solo puede cargar su propio origen y el logo.
+- **El servidor no arranca en producción** con el `AUTH_SECRET` de ejemplo o con uno de menos de
+  32 caracteres.
+- **El seed exige `SEED_PASSWORD` en producción** y ya no la imprime en el registro.
+- **Inicio de sesión:**
+  - límite por cuenta, además del límite por IP;
+  - la IP se lee desde la derecha de `X-Forwarded-For` (`TRUSTED_PROXY_HOPS`);
+  - el tiempo de respuesta ya no revela si un correo está registrado.
+- **Exportación PDF limitada:** dos navegadores a la vez y diez exportaciones por minuto por
+  usuario. El error ya no devuelve la URL con el token de impresión.
+- **Tamaño de las peticiones:**
+  - tope al cuerpo de la API (5 MB, 25 MB para importar), aplicado antes de leerlo entero;
+  - un `.xlsx` que declara más de 100 MB descomprimidos se rechaza antes de abrirlo.
+- **Último administrador:** dos administradores que se degradan a la vez ya no dejan el proyecto sin
+  administradores.
+- **Dependencias:** Next 15.5.26 y `overrides` para postcss, uuid y deepmerge-ts.
+  `npm audit --omit=dev` queda sin vulnerabilidades.
+
 ## [1.3.1] — 2026-09-24
 
 ### Añadido

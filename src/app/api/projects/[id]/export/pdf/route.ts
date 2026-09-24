@@ -1,8 +1,10 @@
 import { requireProjectAccess } from "@/lib/api/access";
-import { handle, routeParams } from "@/lib/api/response";
+import { ApiError, handle, routeParams } from "@/lib/api/response";
 import { renderProjectPdf } from "@/lib/export/pdf";
 import { parsePdfOptions } from "@/lib/export/print-model";
+import { PDF_RULE, rateLimiter } from "@/lib/rate-limit";
 import { getProject } from "@/lib/services/projects";
+import { getSettings } from "@/lib/services/settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,15 +18,23 @@ export const GET = handle<Ctx>(async (request, context) => {
   const access = await requireProjectAccess(id, "VIEWER");
   const url = new URL(request.url);
   const options = parsePdfOptions(url.searchParams);
-  const [project, pdf] = await Promise.all([
-    getProject(id),
-    renderProjectPdf({
-      baseUrl: printBaseUrl(),
-      projectId: id,
-      userId: access.user.id,
-      options,
-    }),
-  ]);
+  // Es un GET, así que el middleware no lo cuenta: el límite por usuario se aplica aquí.
+  const limit = rateLimiter.check(`pdf:${access.user.id}`, PDF_RULE);
+  if (!limit.allowed) {
+    throw new ApiError(
+      "RATE_LIMITED",
+      "Has pedido muchos PDF seguidos. Espera un momento y vuelve a intentarlo.",
+      { retryAfterSeconds: limit.retryAfterSeconds },
+    );
+  }
+  const [project, settings] = await Promise.all([getProject(id), getSettings()]);
+  const pdf = await renderProjectPdf({
+    baseUrl: printBaseUrl(),
+    projectId: id,
+    userId: access.user.id,
+    options,
+    allowedExternalUrls: options.logo && settings.logoUrl ? [settings.logoUrl] : [],
+  });
   return new Response(pdf as BodyInit, {
     status: 200,
     headers: {

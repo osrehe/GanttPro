@@ -10,6 +10,24 @@ export async function requireUser(): Promise<SessionUser> {
   return getSessionUser();
 }
 
+/** ¿Administra la instalación? Se consulta en cada petición: el JWT no guarda permisos. */
+export async function isInstanceAdmin(userId: string): Promise<boolean> {
+  const row = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
+  return row?.isAdmin === true;
+}
+
+/** Usuario que administra la instalación (403 si no); lo exige la configuración global. */
+export async function requireInstanceAdmin(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!(await isInstanceAdmin(user.id))) {
+    throw new ApiError(
+      "FORBIDDEN",
+      "Solo quien administra la instalación puede cambiar la configuración global",
+    );
+  }
+  return user;
+}
+
 export interface ProjectAccess {
   readonly user: SessionUser;
   readonly projectId: string;

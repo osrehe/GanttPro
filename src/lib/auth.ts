@@ -5,11 +5,18 @@ import Google from "next-auth/providers/google";
 import { z } from "zod";
 import { authConfig } from "./auth.config";
 import { prisma } from "./db";
+import { LOGIN_ACCOUNT_RULE, rateLimiter } from "./rate-limit";
 
 const credentialsSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1),
 });
+
+/**
+ * Hash de una contraseña que nadie conoce. Cuando el correo no existe se compara contra él para
+ * que la respuesta tarde lo mismo y no revele qué cuentas están registradas.
+ */
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync("cuenta-inexistente-para-igualar-tiempos", 10);
 
 /** Google solo se ofrece si están configuradas las credenciales (UC-31, opcional). */
 export const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
@@ -24,10 +31,15 @@ const providers: NextAuthConfig["providers"] = [
     async authorize(raw) {
       const parsed = credentialsSchema.safeParse(raw);
       if (!parsed.success) return null;
+      // Límite por cuenta además del límite por IP del middleware: la IP se puede rotar.
+      const limit = rateLimiter.check(`login-account:${parsed.data.email}`, LOGIN_ACCOUNT_RULE);
+      if (!limit.allowed) return null;
       const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-      if (!user?.passwordHash) return null;
-      const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
-      if (!ok) return null;
+      const ok = await bcrypt.compare(
+        parsed.data.password,
+        user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+      );
+      if (!user?.passwordHash || !ok) return null;
       return { id: user.id, email: user.email, name: user.name, image: user.image };
     },
   }),

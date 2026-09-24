@@ -94,9 +94,22 @@ describe("resolveLimit", () => {
 });
 
 describe("clientIp", () => {
-  it("toma la primera dirección de X-Forwarded-For", () => {
-    const headers = new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1, 10.0.0.2" });
-    expect(clientIp(headers)).toBe("203.0.113.7");
+  it("con un proxy de confianza toma la última dirección, no la que escribe el cliente", () => {
+    const headers = new Headers({ "x-forwarded-for": "1.2.3.4, 203.0.113.7" });
+    expect(clientIp(headers, 1)).toBe("203.0.113.7");
+  });
+
+  it("con varios proxies cuenta los saltos desde la derecha", () => {
+    const headers = new Headers({ "x-forwarded-for": "1.2.3.4, 203.0.113.7, 10.0.0.1" });
+    expect(clientIp(headers, 2)).toBe("203.0.113.7");
+    // Más saltos que entradas: se queda con la primera en vez de fallar.
+    expect(clientIp(headers, 9)).toBe("1.2.3.4");
+  });
+
+  it("rotar la primera dirección no cambia la clave", () => {
+    const a = clientIp(new Headers({ "x-forwarded-for": "9.9.9.1, 203.0.113.7" }), 1);
+    const b = clientIp(new Headers({ "x-forwarded-for": "9.9.9.2, 203.0.113.7" }), 1);
+    expect(a).toBe(b);
   });
 
   it("usa X-Real-IP cuando no hay cabecera reenviada", () => {

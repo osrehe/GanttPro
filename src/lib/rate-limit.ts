@@ -117,18 +117,61 @@ export const WRITE_RULE: RateLimitRule = {
   windowMs: 60_000,
 };
 
-const LONGEST_WINDOW_MS = Math.max(LOGIN_RULE.windowMs, WRITE_RULE.windowMs);
+/**
+ * Exportaciones a PDF por usuario: cada una lanza un Chromium, así que un lector podría agotar la
+ * memoria del contenedor pidiendo muchas seguidas. Configurable con `RATE_LIMIT_PDF_MAX`
+ * (por defecto 10 por minuto en producción).
+ */
+export const PDF_RULE: RateLimitRule = {
+  limit: resolveLimit("RATE_LIMIT_PDF_MAX", 10),
+  windowMs: 60_000,
+};
+
+/**
+ * Intentos de inicio de sesión por cuenta, sin importar la IP: frena la prueba de contraseñas
+ * contra una cuenta aunque el atacante rote de dirección. Configurable con
+ * `RATE_LIMIT_LOGIN_ACCOUNT_MAX` (por defecto 10 cada 15 minutos en producción).
+ */
+export const LOGIN_ACCOUNT_RULE: RateLimitRule = {
+  limit: resolveLimit("RATE_LIMIT_LOGIN_ACCOUNT_MAX", 10),
+  windowMs: 15 * 60_000,
+};
+
+const LONGEST_WINDOW_MS = Math.max(
+  LOGIN_RULE.windowMs,
+  WRITE_RULE.windowMs,
+  PDF_RULE.windowMs,
+  LOGIN_ACCOUNT_RULE.windowMs,
+);
 
 /** Instancia compartida por el middleware. */
 export const rateLimiter = new SlidingWindowRateLimiter();
 
 /**
- * IP de la petición. Detrás de un proxy hay que reenviar `X-Forwarded-For`; si no llega, todas las
- * peticiones comparten la misma clave y el límite pasa a ser global (conservador, nunca permisivo).
+ * Proxies de confianza delante de la aplicación que agregan su salto a `X-Forwarded-For`
+ * (`TRUSTED_PROXY_HOPS`, por defecto 1: un proxy inverso como nginx o Caddy).
  */
-export function clientIp(headers: Headers): string {
-  const forwarded = headers.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  if (first) return first;
+export function trustedProxyHops(): number {
+  const parsed = Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "", 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+/**
+ * IP de la petición. `X-Forwarded-For` se lee **desde la derecha**: las primeras entradas las
+ * puede escribir el cliente, y solo la que agregó el último proxy de confianza es fiable. Con
+ * `hops` proxies, el cliente es la entrada `hops` contando desde el final. Si la cabecera no llega,
+ * todas las peticiones comparten la misma clave y el límite pasa a ser global (conservador).
+ *
+ * Sin proxy delante, Next.js solo completa `X-Forwarded-For` con la IP del socket cuando el
+ * cliente no la envía, así que la clave por IP se puede falsificar: por eso el inicio de sesión
+ * también se limita por cuenta (`LOGIN_ACCOUNT_RULE`).
+ */
+export function clientIp(headers: Headers, hops: number = trustedProxyHops()): string {
+  const entries = (headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+  const picked = entries[Math.max(0, entries.length - hops)];
+  if (picked) return picked;
   return headers.get("x-real-ip")?.trim() || "desconocida";
 }

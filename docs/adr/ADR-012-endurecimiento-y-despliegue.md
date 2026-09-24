@@ -63,6 +63,9 @@ Tres restricciones condicionan las decisiones:
      valor por defecto es 1.000**, para que el desarrollo y la suite de pruebas —que inicia sesión
      muchas veces seguidas desde la misma IP— no lo toquen. El propio límite se prueba fijando esas
      variables, no bajándolo para todos.
+   - _Corregido en [ADR-013](ADR-013-revision-de-seguridad.md): la primera entrada de
+     `X-Forwarded-For` la escribe el cliente. Ahora la IP se lee desde la derecha y el inicio de
+     sesión se limita también por cuenta._
    - La IP sale de `X-Forwarded-For` (primera entrada) o `X-Real-IP`. Si el proxy no las reenvía,
      todas las peticiones comparten una clave fija: el límite pasa a ser global, que es
      conservador, nunca permisivo.

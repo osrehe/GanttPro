@@ -122,10 +122,51 @@ export function handle<Ctx = unknown>(fn: Handler<Ctx>): Handler<Ctx> {
 export async function parseBody<T>(
   request: Request,
   schema: { parse: (v: unknown) => T },
+  maxBytes: number = DEFAULT_MAX_BODY_BYTES,
 ): Promise<T> {
-  const text = await request.text();
+  const text = new TextDecoder().decode(await readBodyLimited(request, maxBytes));
   const json: unknown = text.trim() === "" ? {} : JSON.parse(text);
   return schema.parse(json);
+}
+
+/** Tope del cuerpo JSON de la API (5 MB); la importación usa uno mayor. */
+export const DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024;
+
+/** Error de validación por cuerpo demasiado grande, con el tope legible en MB. */
+function bodyTooLarge(maxBytes: number): ApiError {
+  const mb = Math.round((maxBytes / (1024 * 1024)) * 10) / 10;
+  return new ApiError("VALIDATION", `La petición supera el máximo de ${mb} MB`, { maxBytes });
+}
+
+/**
+ * Lee el cuerpo sin pasar de `maxBytes`: rechaza de entrada por `Content-Length` y, si la
+ * cabecera falta o miente, corta la lectura en cuanto se supera el tope. Así un cuerpo enorme no
+ * alcanza a ocupar la memoria del servidor.
+ */
+export async function readBodyLimited(request: Request, maxBytes: number): Promise<Uint8Array> {
+  const declared = Number(request.headers.get("content-length") ?? Number.NaN);
+  if (Number.isFinite(declared) && declared > maxBytes) throw bodyTooLarge(maxBytes);
+  if (!request.body) return new Uint8Array(0);
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      throw bodyTooLarge(maxBytes);
+    }
+    chunks.push(value);
+  }
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
 }
 
 /** Resuelve los parámetros de ruta (en Next 15 llegan como promesa). */

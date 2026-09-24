@@ -210,13 +210,38 @@ export type ChangesQuery = z.infer<typeof changesQuerySchema>;
 
 // ---------------------------------------------------------------- Configuración global
 
+/**
+ * Logo de las exportaciones: una imagen `https:` o incrustada como `data:` (PNG, JPEG, GIF o WebP
+ * en base64). Se descartan otros esquemas (`http:`, `file:`, `javascript:`) y el SVG, porque
+ * Chromium la carga al generar el PDF.
+ */
+export const LOGO_URL_MAX_LENGTH = 500_000;
+export const logoUrlSchema = z
+  .string()
+  .trim()
+  .max(LOGO_URL_MAX_LENGTH, "El logo es demasiado grande: usa una imagen más liviana")
+  .refine(
+    (value) => {
+      if (/^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)) return true;
+      try {
+        return new URL(value).protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    {
+      message:
+        "El logo debe ser una dirección https:// o una imagen PNG, JPEG, GIF o WebP incrustada",
+    },
+  );
+
 export const updateSettingsSchema = z
   .object({
     ufValue: z.number().positive().nullable(),
     ufValueDate: isoDateSchema.nullable(),
     displayCurrency: currencySchema,
     dateFormat: z.enum(["dd-mm-yyyy", "yyyy-mm-dd"]),
-    logoUrl: z.string().url().nullable(),
+    logoUrl: logoUrlSchema.nullable(),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: "No hay cambios que aplicar" });

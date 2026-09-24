@@ -66,15 +66,16 @@ erDiagram
 
 Usuario autenticado. Los roles no son globales: se asignan por proyecto en `ProjectMember`.
 
-| Campo          | Tipo     | Oblig. | Reglas                                           |
-| -------------- | -------- | ------ | ------------------------------------------------ |
-| `id`           | String   | sí     | cuid                                             |
-| `email`        | String   | sí     | único, minúsculas                                |
-| `name`         | String   | sí     |                                                  |
-| `passwordHash` | String   | no     | bcrypt; nulo si el usuario solo entra con Google |
-| `image`        | String   | no     | URL de avatar                                    |
-| `createdAt`    | DateTime | sí     |                                                  |
-| `updatedAt`    | DateTime | sí     |                                                  |
+| Campo          | Tipo     | Oblig. | Reglas                                                        |
+| -------------- | -------- | ------ | ------------------------------------------------------------- |
+| `id`           | String   | sí     | cuid                                                          |
+| `email`        | String   | sí     | único, minúsculas                                             |
+| `name`         | String   | sí     |                                                               |
+| `passwordHash` | String   | no     | bcrypt; nulo si el usuario solo entra con Google              |
+| `image`        | String   | no     | URL de avatar                                                 |
+| `isAdmin`      | Boolean  | sí     | por defecto `false`; cambia la configuración global (ADR-013) |
+| `createdAt`    | DateTime | sí     |                                                               |
+| `updatedAt`    | DateTime | sí     |                                                               |
 
 ### Project
 

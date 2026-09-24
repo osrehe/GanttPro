@@ -7,6 +7,37 @@ Orden sugerido: primero lo que cambia la operación diaria (feriados, correo, UF
 importa al crecer (rendimiento del PDF, límite de peticiones distribuido) y al final lo que amplía el
 alcance funcional.
 
+## Seguridad
+
+Lo que la revisión de [ADR-013](adr/ADR-013-revision-de-seguridad.md) dejó abierto a propósito.
+
+### Chromium con `--no-sandbox`
+
+**Hoy.** Puppeteer lanza Chromium sin el sandbox del sistema, porque el contenedor no tiene el
+perfil seccomp ni los espacios de nombres de usuario que exige. La página de impresión solo puede
+pedir su propio origen y el logo.
+
+**Impacto.** Un fallo del motor de render al procesar el logo tendría más alcance que con sandbox.
+
+**Qué haría falta.** Un perfil seccomp para Chromium en `docker-compose.prod.yml` y quitar la
+bandera, o guardar el logo como archivo local para que no haya contenido externo.
+
+### Sesiones revocables
+
+**Hoy.** La sesión es un JWT de 30 días. Los permisos se consultan en cada petición, pero no hay
+forma de cerrar una sesión concreta.
+
+**Qué haría falta.** Guardar una versión de sesión en `User` y compararla en `getSessionUser`, o
+acortar `maxAge` con renovación automática.
+
+### Alta de miembros sin revelar cuentas
+
+**Hoy.** Agregar un miembro responde si el correo existe y devuelve su nombre. Se mantiene porque
+quien administra el proyecto necesita saberlo.
+
+**Qué haría falta.** Invitaciones por correo que la persona acepta, con un mensaje único exista o
+no la cuenta.
+
 ## Datos y operación
 
 ### Feriados de Chile de otros años

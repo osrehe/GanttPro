@@ -57,6 +57,8 @@ function GlobalSettingsCard() {
   const [currency, setCurrency] = useState<"UF" | "CLP">("UF");
   const [dateFormat, setDateFormat] = useState<"dd-mm-yyyy" | "yyyy-mm-dd">("dd-mm-yyyy");
   const [logoUrl, setLogoUrl] = useState("");
+  // Solo quien administra la instalación cambia estas preferencias: afectan a todos los proyectos.
+  const readOnly = settings.data?.canEdit !== true;
 
   useEffect(() => {
     const data = settings.data;
@@ -115,6 +117,7 @@ function GlobalSettingsCard() {
                   placeholder="38.000,00"
                   value={ufValue}
                   onChange={(e) => setUfValue(e.target.value)}
+                  disabled={readOnly}
                   data-testid="uf-value"
                 />
               </div>
@@ -125,12 +128,17 @@ function GlobalSettingsCard() {
                   type="date"
                   value={ufValueDate}
                   onChange={(e) => setUfValueDate(e.target.value)}
+                  disabled={readOnly}
                   data-testid="uf-value-date"
                 />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="display-currency">Moneda de visualización</Label>
-                <Select value={currency} onValueChange={(v) => setCurrency(v as "UF" | "CLP")}>
+                <Select
+                  value={currency}
+                  onValueChange={(v) => setCurrency(v as "UF" | "CLP")}
+                  disabled={readOnly}
+                >
                   <SelectTrigger id="display-currency" data-testid="display-currency">
                     <SelectValue />
                   </SelectTrigger>
@@ -145,6 +153,7 @@ function GlobalSettingsCard() {
                 <Select
                   value={dateFormat}
                   onValueChange={(v) => setDateFormat(v as "dd-mm-yyyy" | "yyyy-mm-dd")}
+                  disabled={readOnly}
                 >
                   <SelectTrigger id="date-format" data-testid="date-format">
                     <SelectValue />
@@ -164,21 +173,29 @@ function GlobalSettingsCard() {
                 placeholder="https://mi-empresa.cl/logo.png"
                 value={logoUrl}
                 onChange={(e) => setLogoUrl(e.target.value)}
+                disabled={readOnly}
                 data-testid="logo-url"
               />
               <p className="text-muted-foreground text-xs">
                 Aparece en el encabezado del PDF cuando la opción &laquo;Logo&raquo; está activada.
+                Debe ser una dirección https:// (PNG, JPEG, GIF o WebP).
               </p>
             </div>
-            <div>
-              <Button
-                onClick={() => save.mutate()}
-                disabled={save.isPending}
-                data-testid="save-settings"
-              >
-                {save.isPending ? "Guardando…" : "Guardar preferencias"}
-              </Button>
-            </div>
+            {readOnly ? (
+              <p className="text-muted-foreground text-sm" data-testid="settings-read-only">
+                Solo quien administra la instalación puede cambiar estas preferencias.
+              </p>
+            ) : (
+              <div>
+                <Button
+                  onClick={() => save.mutate()}
+                  disabled={save.isPending}
+                  data-testid="save-settings"
+                >
+                  {save.isPending ? "Guardando…" : "Guardar preferencias"}
+                </Button>
+              </div>
+            )}
           </>
         )}
       </CardContent>

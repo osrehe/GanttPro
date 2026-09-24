@@ -17,7 +17,7 @@ import type {
 } from "@/lib/dto";
 import type { ImportRequestInput } from "@/lib/import/schema";
 import type { ImportPreview, ImportResult } from "@/lib/import/types";
-import type { SettingsDto } from "@/lib/services/settings";
+import type { SettingsResponseDto } from "@/lib/services/settings";
 import type {
   AddMemberInput,
   BulkTaskUpdateInput,
@@ -162,8 +162,8 @@ export const api = {
     remove: (id: string) => del<{ deleted: true }>(`/api/assignments/${id}`),
   },
   settings: {
-    get: () => get<SettingsDto>("/api/settings"),
-    update: (input: UpdateSettingsInput) => patch<SettingsDto>("/api/settings", input),
+    get: () => get<SettingsResponseDto>("/api/settings"),
+    update: (input: UpdateSettingsInput) => patch<SettingsResponseDto>("/api/settings", input),
   },
   members: {
     list: (projectId: string) => get<MemberDto[]>(`/api/projects/${projectId}/members`),

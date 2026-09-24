@@ -67,6 +67,8 @@ import { GET as baselineRoute, DELETE as deleteBaselineRoute } from "./baselines
 import { PATCH as patchMemberRoute, DELETE as deleteMemberRoute } from "./members/[id]/route";
 import { DELETE as revokeShareLinkRoute } from "./share-links/[id]/route";
 import { PATCH as patchCommentRoute, DELETE as deleteCommentRoute } from "./comments/[id]/route";
+import { GET as settingsRoute, PATCH as patchSettingsRoute } from "./settings/route";
+import { POST as importPreviewRoute } from "./import/preview/route";
 
 let currentUser: SessionUser | null = null;
 vi.mocked(getSessionUser).mockImplementation(async () => {
@@ -438,5 +440,111 @@ describe("Roles y proyectos archivados", () => {
       { name: "Tras restaurar" },
     );
     expect(creada.status).toBe(201);
+  });
+});
+
+describe("Configuración global", () => {
+  it("solo quien administra la instalación puede cambiarla; el resto la lee", async () => {
+    const previa = await prisma.setting.findMany();
+    try {
+      await prisma.user.update({ where: { id: dueño.id }, data: { isAdmin: false } });
+      currentUser = ajeno;
+      const lectura = await call<{ canEdit: boolean }>(settingsRoute, "GET");
+      expect(lectura.status).toBe(200);
+      expect(lectura.data.canEdit).toBe(false);
+      const rechazo = await call(patchSettingsRoute, "PATCH", {}, { ufValue: 1 });
+      expect(rechazo.status).toBe(403);
+      expect(rechazo.error.code).toBe("FORBIDDEN");
+
+      await prisma.user.update({ where: { id: dueño.id }, data: { isAdmin: true } });
+      currentUser = dueño;
+      const admin = await call<{ canEdit: boolean; ufValue: number }>(
+        patchSettingsRoute,
+        "PATCH",
+        {},
+        { ufValue: 39000 },
+      );
+      expect(admin.status, JSON.stringify(admin.error)).toBe(200);
+      expect(admin.data).toMatchObject({ canEdit: true, ufValue: 39000 });
+    } finally {
+      await prisma.user.update({ where: { id: dueño.id }, data: { isAdmin: false } });
+      await prisma.setting.deleteMany();
+      if (previa.length > 0) {
+        await prisma.setting.createMany({
+          data: previa.map(({ key, value, updatedById }) => ({
+            key,
+            value: value as string | number,
+            updatedById,
+          })),
+        });
+      }
+    }
+  });
+
+  it("el logo solo admite https o una imagen incrustada", async () => {
+    await prisma.user.update({ where: { id: dueño.id }, data: { isAdmin: true } });
+    try {
+      currentUser = dueño;
+      for (const logoUrl of [
+        "http://10.0.0.5/logo.png",
+        "file:///etc/passwd",
+        "javascript:alert(1)",
+        "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=",
+      ]) {
+        const res = await call(patchSettingsRoute, "PATCH", {}, { logoUrl });
+        expect(res.status, logoUrl).toBe(422);
+      }
+    } finally {
+      await prisma.user.update({ where: { id: dueño.id }, data: { isAdmin: false } });
+    }
+  });
+});
+
+describe("Límites de tamaño y concurrencia", () => {
+  it("rechaza una importación que declara un cuerpo mayor al máximo sin leerlo", async () => {
+    currentUser = dueño;
+    const request = new Request("http://localhost/api/import/preview", {
+      method: "POST",
+      headers: {
+        "Content-Type": "multipart/form-data; boundary=x",
+        "Content-Length": String(50 * 1024 * 1024),
+      },
+      body: "--x--",
+    });
+    const response = await importPreviewRoute(request, {} as never);
+    expect(response.status).toBe(422);
+    const json = (await response.json()) as { error: { message: string } };
+    expect(json.error.message).toContain("10 MB");
+  });
+
+  it("dos administradores que se degradan a la vez no dejan el proyecto sin administradores", async () => {
+    currentUser = dueño;
+    const project = (
+      await call<ProjectDto>(
+        createProjectRoute,
+        "POST",
+        {},
+        { name: `Carrera admins ${Date.now()}`, startDate: "2026-09-07" },
+      )
+    ).data;
+    const segundo = await call<MemberDto>(
+      addMemberRoute,
+      "POST",
+      { id: project.id },
+      { email: ajeno.email, role: "ADMIN" },
+    );
+    expect(segundo.status, JSON.stringify(segundo.error)).toBe(201);
+    const miembros = await call<MemberDto[]>(membersRoute, "GET", { id: project.id });
+    const propio = miembros.data.find((m) => m.userId === dueño.id) as MemberDto;
+
+    const resultados = await Promise.all([
+      call(patchMemberRoute, "PATCH", { id: propio.id }, { role: "EDITOR" }),
+      call(patchMemberRoute, "PATCH", { id: segundo.data.id }, { role: "EDITOR" }),
+    ]);
+    expect(resultados.filter((r) => r.status === 200)).toHaveLength(1);
+    const admins = await prisma.projectMember.count({
+      where: { projectId: project.id, role: "ADMIN" },
+    });
+    expect(admins).toBe(1);
   });
 });

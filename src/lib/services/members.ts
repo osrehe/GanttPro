@@ -149,15 +149,20 @@ async function findMember(tx: Prisma.TransactionClient, memberId: string): Promi
   return member;
 }
 
-/** Rechaza dejar el proyecto sin administradores. */
+/**
+ * Rechaza dejar el proyecto sin administradores. Bloquea las filas de los administradores
+ * (`FOR UPDATE`) en vez de solo contarlas: si dos administradores se degradan a la vez, la segunda
+ * transacción espera a la primera y vuelve a leer, así que no pueden quedar ambos fuera.
+ */
 async function assertNotLastAdmin(
   tx: Prisma.TransactionClient,
   member: MemberWithUser,
 ): Promise<void> {
-  const admins = await tx.projectMember.count({
-    where: { projectId: member.projectId, role: "ADMIN" },
-  });
-  if (admins <= 1) {
+  const admins = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "ProjectMember"
+    WHERE "projectId" = ${member.projectId} AND "role" = 'ADMIN'
+    FOR UPDATE`;
+  if (admins.length <= 1) {
     throw new ApiError("VALIDATION", "El proyecto debe conservar al menos un administrador", {
       memberId: member.id,
     });
