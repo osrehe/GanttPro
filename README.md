@@ -242,3 +242,7 @@ administra.
 - [Plan de pasos](docs/spec/plan-de-pasos.md) y [registro de tiempos](docs/registro-pasos.md).
 - [Tabla de entrega](docs/entrega.md) — qué quedó completo y qué test lo cubre.
 - [CHANGELOG](CHANGELOG.md) y [backlog](docs/backlog.md).
+
+## Licencia
+
+GanttPro se distribuye bajo la [licencia MIT](LICENSE). © 2026 Oscar Reyes Hevia.

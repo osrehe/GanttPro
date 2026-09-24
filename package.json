@@ -2,6 +2,7 @@
   "name": "ganttpro",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Aplicación web para planificar proyectos con cartas Gantt",
   "workspaces": [
     "packages/*"

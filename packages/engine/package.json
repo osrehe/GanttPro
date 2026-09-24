@@ -2,6 +2,7 @@
   "name": "@ganttpro/engine",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Motor de planificación de GanttPro: TypeScript puro, sin React, Next ni Prisma",
   "type": "module",
   "main": "./src/index.ts",
