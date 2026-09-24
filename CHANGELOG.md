@@ -4,6 +4,13 @@ Todos los cambios relevantes de GanttPro. El formato sigue
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.3.1] — 2026-09-24
+
+### Añadido
+
+**Licencia MIT.** El repositorio incluye el archivo `LICENSE`, los `package.json` declaran
+`"license": "MIT"` y el README tiene una sección que la enlaza.
+
 ## [1.3.0] — 2026-09-09
 
 ### Añadido
